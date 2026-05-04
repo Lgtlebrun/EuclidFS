@@ -10,4 +10,4 @@ source ~/.bashrc
 cd /home/llebru/DS_selection_effects
 source .venv/bin/activate
 
-python -u scripts/visualize_df.py 23070
+python -u EuclidFS/scripts/visualize_df.py 23070
