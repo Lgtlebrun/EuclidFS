@@ -1,0 +1,13 @@
+#!/usr/bin/bash -l
+#SBATCH --job-name=mag_vs_z
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=400000
+#SBATCH --time=03:00:00
+#SBATCH --output=/home/llebru/DS_selection_effects/logs/%j_merge.log
+#SBATCH --error=/home/llebru/DS_selection_effects/logs/%j_merge.log
+
+source ~/.bashrc
+cd /home/llebru/DS_selection_effects
+source .venv/bin/activate
+
+python -u scripts/merge_cats_duckdb.py

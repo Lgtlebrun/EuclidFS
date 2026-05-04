@@ -1,0 +1,27 @@
+#!/usr/bin/bash -l
+#SBATCH --job-name=mag_vs_z
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=16000
+#SBATCH --time=00:30:00
+#SBATCH --output=/home/llebru/DS_selection_effects/logs/%j_mag_vs_z.log
+#SBATCH --error=/home/llebru/DS_selection_effects/logs/%j_mag_vs_z.log
+
+source ~/.bashrc
+cd /home/llebru/DS_selection_effects
+source .venv/bin/activate
+
+START=$(date +%s)
+python -u scripts/mag_vs_redshift.py "$@"   # forward any args
+EXIT_CODE=$?
+END=$(date +%s)
+DURATION=$((END - START))
+
+echo ""
+echo "========================================"
+echo "  Job ID    : $SLURM_JOB_ID"
+echo "  Args      : $*"
+echo "  Exit code : $EXIT_CODE"
+echo "  Duration  : $(printf '%02d:%02d:%02d' $((DURATION/3600)) $((DURATION%3600/60)) $((DURATION%60)))"
+sacct --format=JobID,MaxRSS,MaxVMSize,Elapsed,CPUTime,ExitCode -j ${SLURM_JOB_ID} 2>/dev/null
+echo "========================================"
+exit $EXIT_CODE

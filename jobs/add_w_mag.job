@@ -1,0 +1,13 @@
+#!/usr/bin/bash -l
+#SBATCH --job-name=add_w_mag
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=400000
+#SBATCH --time=03:00:00
+#SBATCH --output=/home/llebru/DS_selection_effects/logs/%j_add_w_mag.log
+#SBATCH --error=/home/llebru/DS_selection_effects/logs/%j_add_w_mag.log
+
+source ~/.bashrc
+cd /home/llebru/DS_selection_effects
+source .venv/bin/activate
+
+python -u scripts/add_w_mag.py

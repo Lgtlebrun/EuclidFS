@@ -1,0 +1,43 @@
+#!/usr/bin/bash -l
+#SBATCH --job-name=mag_vs_z_grid
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=16000
+#SBATCH --time=00:30:00
+#SBATCH --array=0-15          # 4 z_max x 4 mag_max = 16 combinations
+#SBATCH --output=/home/llebru/DS_selection_effects/logs/%j_%a_mag_vs_z.log
+#SBATCH --error=/home/llebru/DS_selection_effects/logs/%j_%a_mag_vs_z.log
+
+source ~/.bashrc
+cd /home/llebru/DS_selection_effects
+source .venv/bin/activate
+
+# define the grids
+Z_MAX_VALUES=(0.5 1.0 2.0 3.0)
+MAG_MAX_VALUES=(-13.0 -14.0 -16.0 -20.0)
+
+# map flat array index → (z_idx, mag_idx)
+N_MAG=${#MAG_MAX_VALUES[@]}        # 4
+Z_IDX=$(( SLURM_ARRAY_TASK_ID / N_MAG ))
+M_IDX=$(( SLURM_ARRAY_TASK_ID % N_MAG ))
+
+Z_MAX=${Z_MAX_VALUES[$Z_IDX]}
+MAG_MAX=${MAG_MAX_VALUES[$M_IDX]}
+
+echo "Task ${SLURM_ARRAY_TASK_ID}: z_max=${Z_MAX}  mag_max=${MAG_MAX}"
+
+START=$(date +%s)
+python -u scripts/mag_vs_redshift.py --redshift-max ${Z_MAX} --mag-max ${MAG_MAX}
+EXIT_CODE=$?
+END=$(date +%s)
+DURATION=$((END - START))
+
+echo ""
+echo "========================================"
+echo "  Job ID    : $SLURM_JOB_ID  task $SLURM_ARRAY_TASK_ID"
+echo "  z_max     : $Z_MAX"
+echo "  mag_max   : $MAG_MAX"
+echo "  Exit code : $EXIT_CODE"
+echo "  Duration  : $(printf '%02d:%02d:%02d' $((DURATION/3600)) $((DURATION%3600/60)) $((DURATION%60)))"
+sacct --format=JobID,MaxRSS,MaxVMSize,Elapsed,CPUTime,ExitCode -j ${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID} 2>/dev/null
+echo "========================================"
+exit $EXIT_CODE
