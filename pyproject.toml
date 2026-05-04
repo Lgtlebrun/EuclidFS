@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "euclidfs"
+version = "0.1.0"
+description = "Data analysis pipeline for Euclid Flagship data analysis"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Leonard Lebrun", email = "leonard.lebrun@physik.uzh.ch" },
+]
+keywords = ["data-analysis", "pipeline", "astronomy", "selection-effects"]
+dependencies = [
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "matplotlib>=3.8",
+  "polars>=0.18",
+]
+
+[project.optional-dependencies]
+# Development tools
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=3.0",
+    "black>=22.0",
+    "ipython>=8.0",
+]
+
+[project.urls]
+Homepage = "https://example.com"
+Repository = "https://example.com/repo"
+
+[tool.setuptools.packages.find]
+where = ["src"]
