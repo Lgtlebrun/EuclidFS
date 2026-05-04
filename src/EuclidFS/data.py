@@ -1,10 +1,28 @@
 import polars as pl
-import psutil
+import psutil, os
 from pathlib import Path
 from typing import Callable, Iterator
+from dotenv import load_dotenv
 
-BUCKETS_PATH = Path("/shares/soares-santos.physik.uzh/euclid/bucketsx8_with_w")
-BUCKETS      = range(23070, 23078)
+#Locate the Root relative to this file
+# __file__ is the path to data.py
+PACKAGE_ROOT = Path(__file__).resolve().parent.parent.parent
+DOTENV_PATH = PACKAGE_ROOT / ".env"
+
+#Load it
+if DOTENV_PATH.exists():
+    load_dotenv(DOTENV_PATH)
+else:
+    # This helps you debug in the Notebook if the file isn't found
+    print(f"Warning: .env not found at {DOTENV_PATH}")
+
+# Fetch with fallbacks (the second argument is a default if .env is missing)
+_path_str = os.getenv("BUCKETS_PATH", "./data")
+BUCKETS_PATH = Path(_path_str)
+
+_start = int(os.getenv("BUCKET_START", 23070))
+_end = int(os.getenv("BUCKET_END", 23078))
+BUCKETS = range(_start, _end) if _start != _end else [_start]
 
 def available_ram_gb() -> float:
     return psutil.virtual_memory().available / 1e9
