@@ -10,4 +10,4 @@ source ~/.bashrc
 cd /home/llebru/DS_selection_effects
 source .venv/bin/activate
 
-python -u scripts/add_w_mag.py
+python -u EuclidFS/scripts/add_w_mag.py

@@ -5,8 +5,8 @@ import polars as pl
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from data import load_lazy
-from config import RunDir
+from EuclidFS.data import load_lazy
+from EuclidFS.config import RunDir
 
 PARAMS = {
     "mag_cols"    : ["abs_mag_r01", "euclid_nisp_h", "lsst_r", "lsst_i", "sdss_r"],

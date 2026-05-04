@@ -11,7 +11,7 @@ cd /home/llebru/DS_selection_effects
 source .venv/bin/activate
 
 START=$(date +%s)
-python -u scripts/try_cuts.py 
+python -u EuclidFS/scripts/try_cuts.py 
 EXIT_CODE=$?
 END=$(date +%s)
 DURATION=$((END - START))

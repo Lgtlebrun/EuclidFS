@@ -11,7 +11,7 @@ cd /home/llebru/DS_selection_effects
 source .venv/bin/activate
 
 START=$(date +%s)
-python -u scripts/mag_vs_redshift.py "$@"   # forward any args
+python -u EuclidFS/scripts/mag_vs_redshift.py "$@"   # forward any args
 EXIT_CODE=$?
 END=$(date +%s)
 DURATION=$((END - START))

@@ -26,7 +26,7 @@ MAG_MAX=${MAG_MAX_VALUES[$M_IDX]}
 echo "Task ${SLURM_ARRAY_TASK_ID}: z_max=${Z_MAX}  mag_max=${MAG_MAX}"
 
 START=$(date +%s)
-python -u scripts/mag_vs_redshift.py --redshift-max ${Z_MAX} --mag-max ${MAG_MAX}
+python -u EuclidFS/scripts/mag_vs_redshift.py --redshift-max ${Z_MAX} --mag-max ${MAG_MAX}
 EXIT_CODE=$?
 END=$(date +%s)
 DURATION=$((END - START))

@@ -12,7 +12,7 @@ source .venv/bin/activate
 
 START=$(date +%s)
 
-python -u scripts/lrg_colour_cuts.py
+python -u EuclidFS/scripts/lrg_colour_cuts.py
 EXIT_CODE=$?
 
 END=$(date +%s)
