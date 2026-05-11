@@ -84,7 +84,7 @@ def load_lazy(
 
     # First drop useless rows
     if n_rows is not None :
-
+        print("DEBUG : Filtering on random_index")
         total = pl.scan_parquet(paths).select(pl.len()).collect().item()
         frac = min(n_rows / total, 1.0)
         print(f"  total rows: {total:,}, selecting {n_rows}  →  fraction: {frac:.6f}")

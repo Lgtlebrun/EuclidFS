@@ -1,0 +1,39 @@
+#!/usr/bin/bash -l
+#SBATCH --job-name=lrg_colours
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=400000
+#SBATCH --time=12:00:00
+#SBATCH --output=/home/llebru/DS_selection_effects/logs/%j_lrg_colours.log
+#SBATCH --error=/home/llebru/DS_selection_effects/logs/%j_lrg_colours.log
+
+source ~/.bashrc
+cd /home/llebru/DS_selection_effects
+source .venv/bin/activate
+
+START=$(date +%s)
+python EuclidFS/partition_files.py
+EXIT_CODE=$?
+
+END=$(date +%s)
+DURATION=$((END - START))
+
+echo ""
+echo "========================================"
+echo "Job summary"
+echo "========================================"
+echo "  Job ID       : $SLURM_JOB_ID"
+echo "  Job name     : $SLURM_JOB_NAME"
+echo "  Node         : $SLURMD_NODENAME"
+echo "  CPUs         : $SLURM_CPUS_PER_TASK"
+echo "  Mem alloc    : ${SLURM_MEM_PER_NODE} MB"
+echo "  Exit code    : $EXIT_CODE"
+echo "  Duration     : $(printf '%02d:%02d:%02d' $((DURATION/3600)) $((DURATION%3600/60)) $((DURATION%60)))"
+echo ""
+echo "  Slurm memory stats (sstat):"
+sstat --format=MaxRSS,MaxVMSize,AveRSS -j ${SLURM_JOB_ID}.batch 2>/dev/null || echo "  (sstat not available for this job)"
+echo ""
+echo "  Slurm accounting (sacct):"
+sacct --format=JobID,MaxRSS,MaxVMSize,Elapsed,CPUTime,ExitCode -j ${SLURM_JOB_ID} 2>/dev/null || echo "  (sacct not available)"
+echo "========================================"
+
+exit $EXIT_CODE
