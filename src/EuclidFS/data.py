@@ -23,7 +23,7 @@ from typing import Callable, Iterator
 # _path_str = os.getenv("BUCKETS_PATH", "./data")
 # BUCKETS_PATH = Path(_path_str)
 DATA_PATH = Path(os.environ["DATA_PATH"])
-
+print(f"DEBUG : DATA_PATH = {DATA_PATH}")
 # _start = int(os.getenv("BUCKET_START", 23070))
 # _end = int(os.getenv("BUCKET_END", 23078))
 # BUCKETS = range(_start, _end) if _start != _end else [_start]    # Allow single bucket
@@ -33,6 +33,7 @@ DATA_PATH = Path(os.environ["DATA_PATH"])
 #     DATA_FILES.extend(list(BUCKETS_PATH.glob(f"{bucket}_part_*.parquet")))
 
 DATA_FILES = sorted(list(DATA_PATH.glob("*.parquet")))
+print(f"DEBUG : DATA_FILES = {DATA_FILES}")
 
 FLUX_COLUMNS = ["euclid_nisp_h", 
                 'euclid_nisp_h_abs', 
@@ -97,20 +98,6 @@ def load_lazy(
         lf = lf.filter(pl.all_horizontal(filters))
 
     if select is not None:
-        needed_flux_cols = [MAG2FLUX_MAP[c] for c in select if c in MAG_COLUMNS]
-    else:
-        needed_flux_cols = FLUX_COLUMNS
-
-    mag_exprs = [
-        pl.when(pl.col(c) > 0)
-          .then(-2.5 * pl.col(c).log(10) - 48.6)
-          .otherwise(None)
-          .alias(f"{c}_mag" if "_mag" not in c else c)
-        for c in needed_flux_cols
-    ]
-    lf = lf.with_columns(mag_exprs)
-
-    if select is not None:
         lf = lf.select(select)
 
     if prepare is not None:
@@ -133,10 +120,6 @@ def iter_files(
         print(f"  file {path.name}  (RAM free: {available_ram_gb():.1f} GB)")
 
         lf = pl.scan_parquet(path)
-
-        for col in FLUX_COLUMNS:
-            if col in lf.collect_schema().names():
-                lf = convert_flux_to_mag(lf, col)
 
         if prepare is not None:
             lf = prepare(lf)
@@ -173,9 +156,6 @@ def random_sample_lazy(
     print(f"  total rows: {total:,}  →  fraction: {frac:.6f}")
 
     lf = pl.scan_parquet(files)
-    for col in FLUX_COLUMNS:
-        if col in lf.collect_schema().names():
-            lf = convert_flux_to_mag(lf, col)
 
     if prepare is not None:
         lf = prepare(lf)
