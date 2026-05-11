@@ -70,15 +70,28 @@ def load_lazy(
     bucket_ids: list[int] | None = None,
     filters:    list[pl.Expr] | None = None,
     select:     list[str] | None = None,
+    n_rows : int | None = None,
+    prepare : Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
 ) -> pl.LazyFrame:
     paths = [
         BUCKETS_PATH / f"{i}.parquet"
         for i in (bucket_ids or BUCKETS)
     ]
-    lf = pl.scan_parquet(paths)
+
+    # First drop useless rows
+    if n_rows is not None :
+
+        total = pl.scan_parquet(paths).select(pl.len()).collect().item()
+        frac = min(n_rows / total, 1.0)
+        print(f"  total rows: {total:,}, selecting {n_rows}  →  fraction: {frac:.6f}")
+        lf = pl.scan_parquet(paths).filter(pl.col("random_index") < frac)
+    else:
+        lf = pl.scan_parquet(paths)
+
     if filters is not None:
         for f in filters:
             lf = lf.filter(f)
+
     if select is not None:
         if isinstance(select, str) : select = [select]   # allow 1 col
         lf = lf.select(select)
@@ -90,6 +103,9 @@ def load_lazy(
         # Add magnitude
         for col in FLUX_COLUMNS:
             lf = convert_flux_to_mag(lf, col)
+
+    if prepare is not None:
+        lf = prepare(lf)
 
     return lf
 
@@ -167,34 +183,3 @@ def random_sample(
         target_ram_gb = target_ram_gb,
     ))
     return pl.concat(chunks)
-
-def random_sample_lazy(
-    n:          int = 50_000,
-    bucket_ids: list[int] | None = None,
-    filters:    list[pl.Expr] | None = None,
-    prepare:    Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
-) -> pl.LazyFrame:
-    """
-    Returns a lazy frame of ~n rows using random_index.
-    The count scan to compute the fraction is the only eager operation.
-    """
-    total = sum(
-        pl.scan_parquet(BUCKETS_PATH / f"{i}.parquet")
-          .select(pl.len()).collect().item()
-        for i in (bucket_ids or BUCKETS)
-    )
-    frac = min(n / total, 1.0)
-    print(f"  total rows: {total:,}, selecting {n}  →  fraction: {frac:.6f}")
-
-    print("random_sample_lazy : loading and filtering data...")
-    _filters =  [pl.col("random_index") < frac]
-    if filters is not None :
-        _filters += filters
-    lf = load_lazy(bucket_ids=bucket_ids, filters=_filters)
-    print(f"Loaded data lasily.")
-    print("random_sample_lazy : Preparing data...")
-    if prepare is not None:
-        lf = prepare(lf)
-    print("Data prepared.")
-
-    return lf

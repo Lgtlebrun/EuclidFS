@@ -6,12 +6,13 @@ from matplotlib.ticker import FormatStrFormatter
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from EuclidFS.data import random_sample_lazy
-from EuclidFS.colour_cuts import apply_lrg_cuts
+from EuclidFS.data import load_lazy
+from EuclidFS.colour_cuts import apply_lrg_cuts, DESI_LRG_COLUMNS
 from EuclidFS.config import RunDir
 
 REDSHIFT_COL = "true_redshift_gal"
 ZMAX         = 1.3
+COLUMNS = DESI_LRG_COLUMNS | {REDSHIFT_COL, "random_index"}
 N_SCATTER    = 50_000
 
 # ── redshift colorbar setup ───────────────────────────────────────────────────
@@ -133,8 +134,7 @@ if __name__ == "__main__":
 
     print(f"Loading and applying LRG cuts with redshift z < {ZMAX}...")
     df_lrg = (
-        random_sample_lazy(n = N_SCATTER, prepare=apply_lrg_cuts)
-        .filter(pl.col(REDSHIFT_COL) < ZMAX)
+        load_lazy(n_rows = N_SCATTER, prepare=apply_lrg_cuts, filters=[pl.col(REDSHIFT_COL) < ZMAX], select=list(COLUMNS))
         .collect()
     )
     print(f"  {len(df_lrg):,} LRG galaxies selected")

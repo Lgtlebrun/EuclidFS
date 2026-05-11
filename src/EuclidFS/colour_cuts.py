@@ -1,6 +1,14 @@
 import polars as pl
 from functools import reduce
 
+DESI_LRG_COLUMNS = {
+    'dec_gal',
+    'sdss_r_mag',
+    'sdss_g_mag',
+    'sdss_z_mag',
+    "wise_w1_mag"
+}
+
 DESI_IS_NORTH = pl.col("dec_gal") > 32.375
 DESI_IS_SOUTH = DESI_IS_NORTH.not_()
 DESI_CUTS_N = [((pl.col("sdss_z_mag") - pl.col("wise_w1_mag")) > (0.8 * (pl.col("sdss_r_mag") - pl.col("sdss_z_mag")) - 0.6)), # (1b)
