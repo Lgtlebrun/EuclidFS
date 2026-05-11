@@ -22,7 +22,27 @@ BUCKETS_PATH = Path(_path_str)
 
 _start = int(os.getenv("BUCKET_START", 23070))
 _end = int(os.getenv("BUCKET_END", 23078))
-BUCKETS = range(_start, _end) if _start != _end else [_start]
+BUCKETS = range(_start, _end) if _start != _end else [_start]    # Allow single bucket
+
+FLUX_COLUMNS = ["euclid_nisp_h", 
+                'euclid_nisp_h_abs', 
+                'lsst_g',
+                'lsst_i',
+                'lsst_r',
+                'lsst_r',
+                'lsst_u',
+                'lsst_y',
+                'lsst_z',
+                'sdss_g',
+                'sdss_i',
+                'sdss_r',
+                'sdss_u',
+                'sdss_z',
+                'wise_w1',
+                'wise_w2',
+                ]
+
+RAM_SAFETY_FACTOR = float(os.getenv("RAM_SAFETY_FACTOR", 0.6))
 
 def available_ram_gb() -> float:
     return psutil.virtual_memory().available / 1e9
@@ -30,6 +50,17 @@ def available_ram_gb() -> float:
 def estimate_chunk_size(sample: pl.DataFrame, target_gb: float) -> int:
     bytes_per_row = sample.estimated_size() / len(sample)
     return max(1000, int(target_gb * 1e9 / bytes_per_row))
+
+def convert_flux_to_mag(ldf:pl.LazyFrame, column : str) -> pl.LazyFrame:
+    if not column in ldf.collect_schema().names():
+        raise KeyError("WARNING : column not in ldf, cannnot convert to mag")
+    
+    return ldf.with_columns([
+            pl.when(pl.col(column) > 0)
+            .then(-2.5 * pl.col(column).log(base=10) - 48.6)
+            .otherwise(None)
+            .alias(f"{column}_mag"),
+        ])
 
 def load_lazy(
     bucket_ids: list[int] | None = None,
@@ -41,11 +72,22 @@ def load_lazy(
         for i in (bucket_ids or BUCKETS)
     ]
     lf = pl.scan_parquet(paths)
-    if filters:
+    if filters is not None:
         for f in filters:
             lf = lf.filter(f)
-    if select:
+    if select is not None:
+        if isinstance(select, str) : select = [select]   # allow 1 col
         lf = lf.select(select)
+        # Add magnitude
+        for col in select :
+            if col in FLUX_COLUMNS:
+                lf = convert_flux_to_mag(lf, col)
+    else :
+        # Add magnitude
+        for col in FLUX_COLUMNS:
+            lf = convert_flux_to_mag(lf, col)
+
+    
     return lf
 
 def iter_buckets(
@@ -58,12 +100,17 @@ def iter_buckets(
     `prepare` is a function that takes a LazyFrame and returns a LazyFrame —
     use it to add columns, apply cuts, select, etc.
     """
-    target_gb = target_ram_gb or (available_ram_gb() * 0.6)
+    # If not indicated, uses available ram x safety factor
+    target_gb = target_ram_gb or (available_ram_gb() * RAM_SAFETY_FACTOR)
 
     for bucket_id in (bucket_ids or BUCKETS):
         print(f"  bucket {bucket_id}  (RAM free: {available_ram_gb():.1f} GB)")
 
         lf = pl.scan_parquet(BUCKETS_PATH / f"{bucket_id}.parquet")
+
+        # same mag conversion as load_lazy — always applied to all flux cols
+        for col in FLUX_COLUMNS:
+            lf = convert_flux_to_mag(lf, col)
 
         if prepare is not None:
             lf = prepare(lf)
@@ -85,3 +132,59 @@ def iter_buckets(
             yield chunk
             offset += chunk_size
             del chunk
+
+def random_sample(
+    n:             int = 50_000,
+    bucket_ids:    list[int] | None = None,
+    prepare:       Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
+    target_ram_gb: float | None = None,
+) -> pl.DataFrame:
+    """
+    Draw a uniform sample of ~n rows using the pre-computed random_index column.
+    Requires random_index in [0, 1) to be present in the catalog.
+    """
+    # estimate the fraction needed to get ~n rows
+    # we need total count first — cheap since it's just a count aggregation
+    total = sum(
+        pl.scan_parquet(BUCKETS_PATH / f"{i}.parquet")
+          .select(pl.len()).collect().item()
+        for i in (bucket_ids or BUCKETS)
+    )
+    frac = min(n / total, 1.0)
+    print(f"  total rows: {total:,}  →  sampling fraction: {frac:.6f}")
+
+    def _prepare(lf: pl.LazyFrame) -> pl.LazyFrame:
+        # First apply optional preparation
+        if prepare is not None:
+            lf = prepare(lf)
+        # Then filter on random index
+        return lf.filter(pl.col("random_index") < frac)
+
+    chunks = list(iter_buckets(
+        bucket_ids    = bucket_ids,
+        prepare       = _prepare,
+        target_ram_gb = target_ram_gb,
+    ))
+    return pl.concat(chunks)
+
+def random_sample_lazy(
+    n:          int = 50_000,
+    bucket_ids: list[int] | None = None,
+    prepare:    Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
+) -> pl.LazyFrame:
+    """
+    Returns a lazy frame of ~n rows using random_index.
+    The count scan to compute the fraction is the only eager operation.
+    """
+    total = sum(
+        pl.scan_parquet(BUCKETS_PATH / f"{i}.parquet")
+          .select(pl.len()).collect().item()
+        for i in (bucket_ids or BUCKETS)
+    )
+    frac = min(n / total, 1.0)
+    print(f"  total rows: {total:,}  →  fraction: {frac:.6f}")
+
+    lf = load_lazy(bucket_ids=bucket_ids)
+    if prepare is not None:
+        lf = prepare(lf)
+    return lf.filter(pl.col("random_index") < frac)
