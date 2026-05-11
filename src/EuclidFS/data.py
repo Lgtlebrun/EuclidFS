@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 #Locate the Root relative to this file
 # __file__ is the path to data.py
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent.parent
+print(f"DEBUG : PACKAGE_ROOT IS : {PACKAGE_ROOT}")
 DOTENV_PATH = PACKAGE_ROOT / ".env"
 
 #Load it
