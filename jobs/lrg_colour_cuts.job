@@ -3,16 +3,17 @@
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=16000
 #SBATCH --time=02:00:00
-#SBATCH --output=logs/%j_lrg_colours.log
-#SBATCH --error=logs/%j_lrg_colours.log
+#SBATCH --output=/home/llebru/DS_selection_effects/logs/%j_mag_vs_z.log
+#SBATCH --error=/home/llebru/DS_selection_effects/logs/%j_mag_vs_z.log
 
-# load .env first so we can use vars in SBATCH directives' substitutes
-ENV_FILE="$(dirname "$0")/../.env"
-set -a; source "$ENV_FILE"; set +a
-
+# Load environment
 source ~/.bashrc
-cd "$PROJECT_DIR"
-source "$VENV_DIR/bin/activate"
+cd /home/llebru/DS_selection_effects
+source .venv/bin/activate
+
+# load .env first 
+ENV_FILE="EuclidFS/.env"
+set -a; source "$ENV_FILE"; set +a
 
 START=$(date +%s)
 python -u EuclidFS/scripts/lrg_colour_cuts.py
