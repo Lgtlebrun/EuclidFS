@@ -46,6 +46,10 @@ FLUX_COLUMNS = ["euclid_nisp_h",
                 'wise_w2',
                 ]
 
+FLUX2MAG_MAP = {flux : f"{flux}_mag" for flux in FLUX_COLUMNS}
+MAG2FLUX_MAP = {mag : flux for flux, mag in FLUX2MAG_MAP.items()}
+MAG_COLUMNS = list(FLUX2MAG_MAP.values())
+
 RAM_SAFETY_FACTOR = float(os.getenv("RAM_SAFETY_FACTOR", 0.6))
 
 def available_ram_gb() -> float:
@@ -94,11 +98,14 @@ def load_lazy(
 
     if select is not None:
         if isinstance(select, str) : select = [select]   # allow 1 col
-        lf = lf.select(select)
+
         # Add magnitude
         for col in select :
-            if col in FLUX_COLUMNS:
-                lf = convert_flux_to_mag(lf, col)
+            if col in MAG_COLUMNS:
+                col_flux = MAG2FLUX_MAP[col]
+                lf = convert_flux_to_mag(lf, col_flux)
+                
+        lf = lf.select(select)
     else :
         # Add magnitude
         for col in FLUX_COLUMNS:
