@@ -1,7 +1,7 @@
 #!/usr/bin/bash -l
 #SBATCH --job-name=lrg_colours
 #SBATCH --cpus-per-task=2
-#SBATCH --mem=16000
+#SBATCH --mem=128000
 #SBATCH --time=02:00:00
 #SBATCH --output=/home/llebru/DS_selection_effects/logs/%j_lrg_colours.log
 #SBATCH --error=/home/llebru/DS_selection_effects/logs/%j_lrg_colours.log
