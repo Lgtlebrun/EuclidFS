@@ -135,7 +135,7 @@ if __name__ == "__main__":
     print(f"Loading and applying LRG cuts with redshift z < {ZMAX}...")
     df_lrg = (
         load_lazy(n_rows = N_SCATTER, prepare=apply_lrg_cuts, filters=[pl.col(REDSHIFT_COL) < ZMAX], select=list(COLUMNS))
-        .collect()
+        .collect(streaming=True)
     )
     print(f"  {len(df_lrg):,} LRG galaxies selected")
 

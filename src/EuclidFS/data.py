@@ -93,23 +93,24 @@ def load_lazy(
         lf = pl.scan_parquet(paths)
 
     if filters is not None:
-        for f in filters:
-            lf = lf.filter(f)
+        lf = lf.filter(pl.all_horizontal(filters))
 
     if select is not None:
-        if isinstance(select, str) : select = [select]   # allow 1 col
+        needed_flux_cols = [MAG2FLUX_MAP[c] for c in select if c in MAG_COLUMNS]
+    else:
+        needed_flux_cols = FLUX_COLUMNS
 
-        # Add magnitude
-        for col in select :
-            if col in MAG_COLUMNS:
-                col_flux = MAG2FLUX_MAP[col]
-                lf = convert_flux_to_mag(lf, col_flux)
-                
+    mag_exprs = [
+        pl.when(pl.col(c) > 0)
+          .then(-2.5 * pl.col(c).log(10) - 48.6)
+          .otherwise(None)
+          .alias(f"{c}_mag" if "_mag" not in c else c)
+        for c in needed_flux_cols
+    ]
+    lf = lf.with_columns(mag_exprs)
+
+    if select is not None:
         lf = lf.select(select)
-    else :
-        # Add magnitude
-        for col in FLUX_COLUMNS:
-            lf = convert_flux_to_mag(lf, col)
 
     if prepare is not None:
         lf = prepare(lf)
