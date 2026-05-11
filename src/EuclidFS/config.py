@@ -31,18 +31,17 @@ class RunDir:
             raise TypeError(f"Cannot save type {type(df_or_dict)}")
         print(f"Result → {path}")
 
+# def _find_dotenv() -> Path | None:
+#     """Walk up from cwd until we find a .env file."""
+#     current = Path.cwd()
+#     for parent in [current, *current.parents]:
+#         candidate = parent / ".env"
+#         if candidate.exists():
+#             return candidate
+#     return None
 
-def _find_dotenv() -> Path | None:
-    """Walk up from cwd until we find a .env file."""
-    current = Path.cwd()
-    for parent in [current, *current.parents]:
-        candidate = parent / ".env"
-        if candidate.exists():
-            return candidate
-    return None
-
-dotenv_path = _find_dotenv()
-if dotenv_path:
-    load_dotenv(dotenv_path)
-else:
-    print("Warning: .env not found anywhere above cwd")
+# dotenv_path = _find_dotenv()
+# if dotenv_path:
+#     load_dotenv(dotenv_path)
+# else:
+#     print("Warning: .env not found anywhere above cwd")

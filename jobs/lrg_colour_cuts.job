@@ -3,38 +3,36 @@
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=16000
 #SBATCH --time=02:00:00
-#SBATCH --output=/home/llebru/DS_selection_effects/logs/%j_lrg_colours.log
-#SBATCH --error=/home/llebru/DS_selection_effects/logs/%j_lrg_colours.log
+#SBATCH --output=logs/%j_lrg_colours.log
+#SBATCH --error=logs/%j_lrg_colours.log
+
+# load .env first so we can use vars in SBATCH directives' substitutes
+ENV_FILE="$(dirname "$0")/../.env"
+set -a; source "$ENV_FILE"; set +a
 
 source ~/.bashrc
-cd /home/llebru/DS_selection_effects
-source .venv/bin/activate
+cd "$PROJECT_DIR"
+source "$VENV_DIR/bin/activate"
 
 START=$(date +%s)
-
 python -u EuclidFS/scripts/lrg_colour_cuts.py
 EXIT_CODE=$?
-
 END=$(date +%s)
 DURATION=$((END - START))
 
 echo ""
 echo "========================================"
-echo "Job summary"
-echo "========================================"
-echo "  Job ID       : $SLURM_JOB_ID"
-echo "  Job name     : $SLURM_JOB_NAME"
-echo "  Node         : $SLURMD_NODENAME"
-echo "  CPUs         : $SLURM_CPUS_PER_TASK"
-echo "  Mem alloc    : ${SLURM_MEM_PER_NODE} MB"
-echo "  Exit code    : $EXIT_CODE"
-echo "  Duration     : $(printf '%02d:%02d:%02d' $((DURATION/3600)) $((DURATION%3600/60)) $((DURATION%60)))"
+echo "  Job ID    : $SLURM_JOB_ID"
+echo "  Job name  : $SLURM_JOB_NAME"
+echo "  Node      : $SLURMD_NODENAME"
+echo "  CPUs      : $SLURM_CPUS_PER_TASK"
+echo "  Mem alloc : ${SLURM_MEM_PER_NODE} MB"
+echo "  Exit code : $EXIT_CODE"
+echo "  Duration  : $(printf '%02d:%02d:%02d' $((DURATION/3600)) $((DURATION%3600/60)) $((DURATION%60)))"
 echo ""
-echo "  Slurm memory stats (sstat):"
-sstat --format=MaxRSS,MaxVMSize,AveRSS -j ${SLURM_JOB_ID}.batch 2>/dev/null || echo "  (sstat not available for this job)"
-echo ""
-echo "  Slurm accounting (sacct):"
+echo "  Slurm memory stats:"
+sstat --format=MaxRSS,MaxVMSize,AveRSS -j ${SLURM_JOB_ID}.batch 2>/dev/null || echo "  (sstat not available)"
+echo "  Slurm accounting:"
 sacct --format=JobID,MaxRSS,MaxVMSize,Elapsed,CPUTime,ExitCode -j ${SLURM_JOB_ID} 2>/dev/null || echo "  (sacct not available)"
 echo "========================================"
-
 exit $EXIT_CODE

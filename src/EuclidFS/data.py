@@ -2,26 +2,27 @@ import polars as pl
 import psutil, os
 from pathlib import Path
 from typing import Callable, Iterator
-from dotenv import load_dotenv
-from .config import _find_dotenv
+# from dotenv import load_dotenv
+# from .config import _find_dotenv
 
 #Locate the Root relative to this file
 # __file__ is the path to data.py
 # PACKAGE_ROOT = Path(__file__).resolve().parent.parent.parent
 # print(f"DEBUG : PACKAGE_ROOT IS : {PACKAGE_ROOT}")
-DOTENV_PATH = _find_dotenv()
-print(f".env path considered : {DOTENV_PATH}")
+# DOTENV_PATH = _find_dotenv()
+# print(f".env path considered : {DOTENV_PATH}")
 
-#Load it
-if DOTENV_PATH.exists():
-    load_dotenv(DOTENV_PATH)
-else:
-    # This helps you debug in the Notebook if the file isn't found
-    print(f"Warning: .env not found at {DOTENV_PATH}")
+# #Load it
+# if DOTENV_PATH.exists():
+#     load_dotenv(DOTENV_PATH)
+# else:
+#     # This helps you debug in the Notebook if the file isn't found
+#     print(f"Warning: .env not found at {DOTENV_PATH}")
 
 # Fetch with fallbacks (the second argument is a default if .env is missing)
-_path_str = os.getenv("BUCKETS_PATH", "./data")
-BUCKETS_PATH = Path(_path_str)
+# _path_str = os.getenv("BUCKETS_PATH", "./data")
+# BUCKETS_PATH = Path(_path_str)
+BUCKETS_PATH = Path(os.environ["BUCKETS_PATH"])
 
 _start = int(os.getenv("BUCKET_START", 23070))
 _end = int(os.getenv("BUCKET_END", 23078))
