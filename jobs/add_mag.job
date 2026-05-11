@@ -9,6 +9,9 @@
 source ~/.bashrc
 cd /home/llebru/DS_selection_effects
 source .venv/bin/activate
+# load .env first 
+ENV_FILE="EuclidFS/.env"
+set -a; source "$ENV_FILE"; set +a
 
 START=$(date +%s)
 python EuclidFS/add_mag_to_files.py
