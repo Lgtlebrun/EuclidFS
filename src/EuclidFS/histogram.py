@@ -3,8 +3,9 @@ from dataclasses import dataclass, field
 import numpy as np
 import polars as pl
 from tqdm import tqdm
-from .data import iter_buckets, BUCKETS
+from .data import iter_files, DATA_FILES
 from typing import Callable
+from pathlib import Path
 
 class _BaseHist:
     """
@@ -16,12 +17,12 @@ class _BaseHist:
         self,
         filters:       list[pl.Expr] | None = None,
         prepare_fn:    Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
-        bucket_ids:    list[int] | None = None,
+        files:    list[Path] | None = None,
         target_ram_gb: float | None = None,
     ):
         self.prepare_fn    = prepare_fn
         self.filters       = filters    or []
-        self.bucket_ids    = bucket_ids
+        self.files    = files or DATA_FILES
         self.target_ram_gb = target_ram_gb
 
     def _prepare(self, exprs: list[pl.Expr]) -> Callable:
@@ -41,12 +42,13 @@ class _BaseHist:
         return prepare
 
     def _run(self, exprs: list[pl.Expr], desc: str) -> None:
+
         prepare    = self._prepare(exprs)
         col_names  = [f"__col{i}__" for i in range(len(exprs))]
-        n_buckets  = len(self.bucket_ids or list(BUCKETS))
+        n_files = len(self.files)
 
-        with tqdm(total=n_buckets, desc=desc, unit="bucket") as pbar:
-            for chunk in iter_buckets(self.bucket_ids, prepare=prepare,
+        with tqdm(total=n_files, desc=desc, unit="bucket") as pbar:
+            for chunk in iter_files(self.files, prepare=prepare,
                                       target_ram_gb=self.target_ram_gb):
                 arrays = [chunk[c].to_numpy() for c in col_names]
                 self._accumulate(arrays)
@@ -58,7 +60,6 @@ class _BaseHist:
 
     def _result(self):
         raise NotImplementedError
-
 
 @dataclass
 class Hist1D(_BaseHist):
@@ -80,7 +81,7 @@ class Hist1D(_BaseHist):
     label:         str
     filters:       list[pl.Expr]  = field(default_factory=list)
     prepare_fn:    Callable | None       = None
-    bucket_ids:    list[int]      | None = None
+    files:         list[Path]      | None = None
     target_ram_gb: float          | None = None
 
     # results — populated by compute()
@@ -89,7 +90,7 @@ class Hist1D(_BaseHist):
 
     def __post_init__(self):
         _BaseHist.__init__(self, self.filters, self.prepare_fn,
-                           self.bucket_ids, self.target_ram_gb)
+                           self.files, self.target_ram_gb)
         self._counts = np.zeros(len(self.bins) - 1, dtype=np.int64)
 
     def _accumulate(self, arrays):
@@ -141,7 +142,7 @@ class Hist2D(_BaseHist):
     y_label:       str
     filters:       list[pl.Expr]  = field(default_factory=list)
     prepare_fn:    Callable | None       = None
-    bucket_ids:    list[int]      | None = None
+    files:         list[Path]      | None = None
     target_ram_gb: float          | None = None
 
     # results — populated by compute()
@@ -150,7 +151,7 @@ class Hist2D(_BaseHist):
 
     def __post_init__(self):
         _BaseHist.__init__(self, self.filters, self.prepare_fn,
-                           self.bucket_ids, self.target_ram_gb)
+                           self.files, self.target_ram_gb)
         self._counts = np.zeros((len(self.x_bins) - 1, len(self.y_bins) - 1), dtype=np.int64)
 
     def _accumulate(self, arrays):

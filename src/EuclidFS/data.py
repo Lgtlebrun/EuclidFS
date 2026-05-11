@@ -22,17 +22,22 @@ from typing import Callable, Iterator
 # Fetch with fallbacks (the second argument is a default if .env is missing)
 # _path_str = os.getenv("BUCKETS_PATH", "./data")
 # BUCKETS_PATH = Path(_path_str)
-BUCKETS_PATH = Path(os.environ["BUCKETS_PATH"])
+DATA_PATH = Path(os.environ["DATA_PATH"])
 
-_start = int(os.getenv("BUCKET_START", 23070))
-_end = int(os.getenv("BUCKET_END", 23078))
-BUCKETS = range(_start, _end) if _start != _end else [_start]    # Allow single bucket
+# _start = int(os.getenv("BUCKET_START", 23070))
+# _end = int(os.getenv("BUCKET_END", 23078))
+# BUCKETS = range(_start, _end) if _start != _end else [_start]    # Allow single bucket
+# DATA_FILES = []
+
+# for bucket in BUCKETS :
+#     DATA_FILES.extend(list(BUCKETS_PATH.glob(f"{bucket}_part_*.parquet")))
+
+DATA_FILES = sorted(list(DATA_PATH.glob("*.parquet")))
 
 FLUX_COLUMNS = ["euclid_nisp_h", 
                 'euclid_nisp_h_abs', 
                 'lsst_g',
                 'lsst_i',
-                'lsst_r',
                 'lsst_r',
                 'lsst_u',
                 'lsst_y',
@@ -71,26 +76,22 @@ def convert_flux_to_mag(ldf:pl.LazyFrame, column : str) -> pl.LazyFrame:
         ])
 
 def load_lazy(
-    bucket_ids: list[int] | None = None,
+    files:      list[Path] = DATA_FILES,
     filters:    list[pl.Expr] | None = None,
     select:     list[str] | None = None,
     n_rows : int | None = None,
     prepare : Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
 ) -> pl.LazyFrame:
-    paths = [
-        BUCKETS_PATH / f"{i}.parquet"
-        for i in (bucket_ids or BUCKETS)
-    ]
 
     # First drop useless rows
     if n_rows is not None :
         print("DEBUG : Filtering on random_index")
-        total = pl.scan_parquet(paths).select(pl.len()).collect().item()
+        total = pl.scan_parquet(files).select(pl.len()).collect().item()
         frac = min(n_rows / total, 1.0)
         print(f"  total rows: {total:,}, selecting {n_rows}  →  fraction: {frac:.6f}")
-        lf = pl.scan_parquet(paths).filter(pl.col("random_index") < frac)
+        lf = pl.scan_parquet(files).filter(pl.col("random_index") < frac)
     else:
-        lf = pl.scan_parquet(paths)
+        lf = pl.scan_parquet(files)
 
     if filters is not None:
         lf = lf.filter(pl.all_horizontal(filters))
@@ -117,32 +118,29 @@ def load_lazy(
 
     return lf
 
-def iter_buckets(
-    bucket_ids:    list[int] | None = None,
+def iter_files(
+    files:         list[Path] | None = None,
     prepare:       Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
     target_ram_gb: float | None = None,
 ) -> Iterator[pl.DataFrame]:
     """
-    Yields chunks of data across all buckets, RAM-safe.
-    `prepare` is a function that takes a LazyFrame and returns a LazyFrame —
-    use it to add columns, apply cuts, select, etc.
+    Yields chunks of data across all parquet files, RAM-safe.
     """
-    # If not indicated, uses available ram x safety factor
-    target_gb = target_ram_gb or (available_ram_gb() * RAM_SAFETY_FACTOR)
+    target_gb    = target_ram_gb or (available_ram_gb() * RAM_SAFETY_FACTOR)
+    files        = files or DATA_FILES
 
-    for bucket_id in (bucket_ids or BUCKETS):
-        print(f"  bucket {bucket_id}  (RAM free: {available_ram_gb():.1f} GB)")
+    for path in files:
+        print(f"  file {path.name}  (RAM free: {available_ram_gb():.1f} GB)")
 
-        lf = pl.scan_parquet(BUCKETS_PATH / f"{bucket_id}.parquet")
+        lf = pl.scan_parquet(path)
 
-        # same mag conversion as load_lazy — always applied to all flux cols
         for col in FLUX_COLUMNS:
-            lf = convert_flux_to_mag(lf, col)
+            if col in lf.collect_schema().names():
+                lf = convert_flux_to_mag(lf, col)
 
         if prepare is not None:
             lf = prepare(lf)
 
-        # probe
         sample = lf.limit(1000).collect()
         if len(sample) == 0:
             print(f"    skipping — empty after prepare()")
@@ -160,37 +158,47 @@ def iter_buckets(
             offset += chunk_size
             del chunk
 
+
+def random_sample_lazy(
+    n:       int = 50_000,
+    files:   list[Path] | None = None,
+    prepare: Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
+) -> pl.LazyFrame:
+    """
+    Returns a lazy frame of ~n rows using random_index.
+    """
+    files = files or DATA_FILES
+    total = pl.scan_parquet(files).select(pl.len()).collect().item()
+    frac  = min(n / total, 1.0)
+    print(f"  total rows: {total:,}  →  fraction: {frac:.6f}")
+
+    lf = pl.scan_parquet(files)
+    for col in FLUX_COLUMNS:
+        if col in lf.collect_schema().names():
+            lf = convert_flux_to_mag(lf, col)
+
+    if prepare is not None:
+        lf = prepare(lf)
+
+    return lf.filter(pl.col("random_index") < frac)
+
+
 def random_sample(
     n:             int = 50_000,
-    bucket_ids:    list[int] | None = None,
+    files:         list[Path] | None = None,
     prepare:       Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
     target_ram_gb: float | None = None,
 ) -> pl.DataFrame:
-    """
-    Draw a uniform sample of ~n rows using the pre-computed random_index column.
-    Requires random_index in [0, 1) to be present in the catalog.
-    """
-    # estimate the fraction needed to get ~n rows
-    # we need total count first — cheap since it's just a count aggregation
-    bucket_paths = [BUCKETS_PATH / f"{i}.parquet" for i in (bucket_ids or BUCKETS)]
-    total = pl.scan_parquet(bucket_paths).select(pl.len()).collect().item()
-
-    frac = min(n / total, 1.0)
-    print(f"  total rows: {total:,}  →  sampling fraction: {frac:.6f}")
+    files     = files or DATA_FILES
+    total     = pl.scan_parquet(files).select(pl.len()).collect().item()
+    frac      = min(n / total, 1.0)
+    print(f"  total rows: {total:,}  →  fraction: {frac:.6f}")
 
     def _prepare(lf: pl.LazyFrame) -> pl.LazyFrame:
-
-        # first filter on random index
         lf = lf.filter(pl.col("random_index") < frac)
-        # Then apply optional preparation
         if prepare is not None:
             lf = prepare(lf)
-
         return lf
 
-    chunks = list(iter_buckets(
-        bucket_ids    = bucket_ids,
-        prepare       = _prepare,
-        target_ram_gb = target_ram_gb,
-    ))
-    return pl.concat(chunks)
+    return pl.concat(list(iter_files(files=files, prepare=_prepare,
+                                     target_ram_gb=target_ram_gb)))

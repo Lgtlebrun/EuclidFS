@@ -19,7 +19,8 @@ dependencies = [
   "matplotlib>=3.8",
   "polars>=0.18",
   "python-dotenv",
-  "psutil"
+  "psutil",
+  "tqdm"
 ]
 
 [project.optional-dependencies]
