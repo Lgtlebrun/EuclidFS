@@ -95,6 +95,8 @@ def load_lazy(
     if prepare is not None:
         lf = prepare(lf)
 
+    print("DEBUG : load_lazy : prepared !")
+
     if n_rows is not None:
         # Polars will stop reading files as soon as it has n_rows that pass 'prepare'
         lf = lf.head(n_rows)
