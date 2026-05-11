@@ -84,15 +84,7 @@ def load_lazy(
     prepare : Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
 ) -> pl.LazyFrame:
 
-    # First drop useless rows
-    if n_rows is not None :
-        print("DEBUG : Filtering on random_index")
-        total = pl.scan_parquet(files).select(pl.len()).collect().item()
-        frac = min(n_rows / total, 1.0)
-        print(f"  total rows: {total:,}, selecting {n_rows}  →  fraction: {frac:.6f}")
-        lf = pl.scan_parquet(files).filter(pl.col("random_index") < frac)
-    else:
-        lf = pl.scan_parquet(files)
+    lf = pl.scan_parquet(files)
 
     if filters is not None:
         lf = lf.filter(pl.all_horizontal(filters))
@@ -102,6 +94,10 @@ def load_lazy(
 
     if prepare is not None:
         lf = prepare(lf)
+
+    if n_rows is not None:
+        # Polars will stop reading files as soon as it has n_rows that pass 'prepare'
+        lf = lf.head(n_rows)
 
     return lf
 
