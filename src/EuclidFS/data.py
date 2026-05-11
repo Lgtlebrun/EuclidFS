@@ -192,7 +192,9 @@ def random_sample_lazy(
         _filters += filters
     lf = load_lazy(bucket_ids=bucket_ids, filters=_filters)
     print(f"Loaded data lasily.")
+    print("random_sample_lazy : Preparing data...")
     if prepare is not None:
         lf = prepare(lf)
+    print("Data prepared.")
 
     return lf
