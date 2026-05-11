@@ -91,7 +91,6 @@ def load_lazy(
         for col in FLUX_COLUMNS:
             lf = convert_flux_to_mag(lf, col)
 
-    
     return lf
 
 def iter_buckets(
@@ -149,11 +148,9 @@ def random_sample(
     """
     # estimate the fraction needed to get ~n rows
     # we need total count first — cheap since it's just a count aggregation
-    total = sum(
-        pl.scan_parquet(BUCKETS_PATH / f"{i}.parquet")
-          .select(pl.len()).collect().item()
-        for i in (bucket_ids or BUCKETS)
-    )
+    bucket_paths = [BUCKETS_PATH / f"{i}.parquet" for i in (bucket_ids or BUCKETS)]
+    total = pl.scan_parquet(bucket_paths).select(pl.len()).collect().item()
+
     frac = min(n / total, 1.0)
     print(f"  total rows: {total:,}  →  sampling fraction: {frac:.6f}")
 
@@ -174,6 +171,7 @@ def random_sample(
 def random_sample_lazy(
     n:          int = 50_000,
     bucket_ids: list[int] | None = None,
+    filters:    list[pl.Expr] | None = None,
     prepare:    Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
 ) -> pl.LazyFrame:
     """
@@ -186,9 +184,15 @@ def random_sample_lazy(
         for i in (bucket_ids or BUCKETS)
     )
     frac = min(n / total, 1.0)
-    print(f"  total rows: {total:,}  →  fraction: {frac:.6f}")
+    print(f"  total rows: {total:,}, selecting {n}  →  fraction: {frac:.6f}")
 
-    lf = load_lazy(bucket_ids=bucket_ids)
+    print("random_sample_lazy : loading and filtering data...")
+    _filters =  [pl.col("random_index") < frac]
+    if filters is not None :
+        _filters += filters
+    lf = load_lazy(bucket_ids=bucket_ids, filters=_filters)
+    print(f"Loaded data lasily.")
     if prepare is not None:
         lf = prepare(lf)
-    return lf.filter(pl.col("random_index") < frac)
+
+    return lf
