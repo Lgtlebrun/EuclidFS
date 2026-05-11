@@ -11,7 +11,7 @@ cd /home/llebru/DS_selection_effects
 source .venv/bin/activate
 
 START=$(date +%s)
-python add_mag_to_files.py
+python EuclidFS/add_mag_to_files.py
 EXIT_CODE=$?
 
 END=$(date +%s)
