@@ -133,6 +133,8 @@ if __name__ == "__main__":
     run = RunDir("lrg_colour_cuts")
 
     print(f"Loading and applying LRG cuts with redshift z < {ZMAX}...")
+    query = load_lazy(n_rows = N_SCATTER, prepare=apply_lrg_cuts, filters=[pl.col(REDSHIFT_COL) < ZMAX], select=list(COLUMNS))
+    print(query.explain(streaming=True))
     df_lrg = (
         load_lazy(n_rows = N_SCATTER, prepare=apply_lrg_cuts, filters=[pl.col(REDSHIFT_COL) < ZMAX], select=list(COLUMNS))
         .collect(streaming=True)

@@ -179,11 +179,14 @@ def random_sample(
     print(f"  total rows: {total:,}  →  sampling fraction: {frac:.6f}")
 
     def _prepare(lf: pl.LazyFrame) -> pl.LazyFrame:
-        # First apply optional preparation
+
+        # first filter on random index
+        lf = lf.filter(pl.col("random_index") < frac)
+        # Then apply optional preparation
         if prepare is not None:
             lf = prepare(lf)
-        # Then filter on random index
-        return lf.filter(pl.col("random_index") < frac)
+
+        return lf
 
     chunks = list(iter_buckets(
         bucket_ids    = bucket_ids,
