@@ -3,12 +3,14 @@ import psutil, os
 from pathlib import Path
 from typing import Callable, Iterator
 from dotenv import load_dotenv
+from .config import _find_dotenv
 
 #Locate the Root relative to this file
 # __file__ is the path to data.py
-PACKAGE_ROOT = Path(__file__).resolve().parent.parent.parent
-print(f"DEBUG : PACKAGE_ROOT IS : {PACKAGE_ROOT}")
-DOTENV_PATH = PACKAGE_ROOT / ".env"
+# PACKAGE_ROOT = Path(__file__).resolve().parent.parent.parent
+# print(f"DEBUG : PACKAGE_ROOT IS : {PACKAGE_ROOT}")
+DOTENV_PATH = _find_dotenv()
+print(f".env path considered : {DOTENV_PATH}")
 
 #Load it
 if DOTENV_PATH.exists():
