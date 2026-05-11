@@ -16,4 +16,5 @@ fi
 
 echo "Following: $LATEST"
 echo "----------------------------------------"
+cat "$LATEST"
 tail -f "$LATEST"
