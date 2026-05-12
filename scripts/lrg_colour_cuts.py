@@ -148,7 +148,7 @@ if __name__ == "__main__":
         filters = [pl.col(REDSHIFT_COL) < ZMAX],
         select  = list(COLUMNS),
     ).collect()  # only N_SCATTER rows, fast since files sorted by random_index
-    
+
     print(f"  {len(df_lrg):,} LRG galaxies selected")
 
     if len(df_lrg) == 0:
@@ -174,18 +174,24 @@ if __name__ == "__main__":
         expr   = pl.col(REDSHIFT_COL),
         bins   = np.linspace(0, ZMAX, 201),
         label  = "redshift",
-        lf     = lf_lrg,   # ← reuse
+        lf     = lf_lrg,   
     ).compute()
 
-    hist_rw1 = Hist2D(
+    figH1d, axH1d = hist_z.plot()
+    run.save_plot(figH1d, "redshift_lrg_h1d.png")
+
+    hist_w1 = Hist2D(
         x       = pl.col(REDSHIFT_COL),
-        y       = pl.col("sdss_r_mag") - pl.col("wise_w1_mag"),
+        y       = pl.col("wise_w1_mag"),
         x_bins  = np.linspace(0, ZMAX, 201),
-        y_bins  = np.linspace(-1, 8, 201),
+        y_bins  = np.linspace(14, 30, 201),
         x_label = "redshift",
-        y_label = "r - W1",
-        lf      = lf_lrg,   # ← reuse
+        y_label = "W1",
+        lf      = lf_lrg,   
     ).compute()
+
+    figH2d, axH2d = hist_w1.plot()
+    run.save_plot(figH2d, "W1_redshift_lrg_h2d.png")
 
     run.save_result(
         df_lrg.select(["wise_w1_mag", "sdss_r_mag", "sdss_g_mag",

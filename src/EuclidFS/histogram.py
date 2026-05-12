@@ -118,12 +118,12 @@ class Hist1D(_BaseHist):
     def plot(self, ax=None, **kwargs):
         import matplotlib.pyplot as plt
         if ax is None:
-            _, ax = plt.subplots(figsize=(8, 5))
+            fig, ax = plt.subplots(figsize=(8, 5))
         ax.stairs(self.counts, self.bins, **kwargs)
         ax.set_xlabel(self.label)
         ax.set_ylabel("count")
         ax.set_title(f"{self.label}  (N={self.n_total:,})")
-        return ax
+        return fig, ax
 
 
 @dataclass

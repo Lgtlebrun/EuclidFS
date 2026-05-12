@@ -11,7 +11,7 @@ cd /home/llebru/DS_selection_effects
 source .venv/bin/activate
 
 START=$(date +%s)
-python EuclidFS/partition_files.py
+python -u EuclidFS/partition_files.py
 EXIT_CODE=$?
 
 END=$(date +%s)
