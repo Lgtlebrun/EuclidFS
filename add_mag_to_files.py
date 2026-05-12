@@ -68,5 +68,5 @@ def bake_magnitudes(folder_path: str):
 
 if __name__ == "__main__":
     # Point this to your new 'small_files' directory
-    PATH = "/shares/soares-santos.physik.uzh/euclid/bucketsx8_with_w/small_files"
+    PATH = "/shares/soares-santos.physik.uzh/euclid/bucketsx8_sorted"
     bake_magnitudes(PATH)
