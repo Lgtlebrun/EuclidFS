@@ -9,7 +9,9 @@
 source ~/.bashrc
 cd /home/llebru/DS_selection_effects
 source .venv/bin/activate
-
+# load .env first 
+ENV_FILE="EuclidFS/.env"
+set -a; source "$ENV_FILE"; set +a
 START=$(date +%s)
 python -u EuclidFS/scripts/mag_vs_redshift.py "$@"   # forward any args
 EXIT_CODE=$?
