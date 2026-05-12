@@ -23,7 +23,6 @@ from typing import Callable, Iterator
 # _path_str = os.getenv("BUCKETS_PATH", "./data")
 # BUCKETS_PATH = Path(_path_str)
 DATA_PATH = Path(os.environ["DATA_PATH"])
-print(f"DEBUG : DATA_PATH = {DATA_PATH}")
 # _start = int(os.getenv("BUCKET_START", 23070))
 # _end = int(os.getenv("BUCKET_END", 23078))
 # BUCKETS = range(_start, _end) if _start != _end else [_start]    # Allow single bucket
@@ -33,7 +32,6 @@ print(f"DEBUG : DATA_PATH = {DATA_PATH}")
 #     DATA_FILES.extend(list(BUCKETS_PATH.glob(f"{bucket}_part_*.parquet")))
 
 DATA_FILES = sorted(list(DATA_PATH.glob("*.parquet")))
-print(f"DEBUG : DATA_FILES = {DATA_FILES}")
 
 FLUX_COLUMNS = ["euclid_nisp_h", 
                 'euclid_nisp_h_abs', 
@@ -100,6 +98,7 @@ def load_lazy(
     if n_rows is not None:
         # Polars will stop reading files as soon as it has n_rows that pass 'prepare'
         lf = lf.head(n_rows)
+        print("DEBUG: lf headed")
 
     return lf
 

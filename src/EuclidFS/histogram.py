@@ -171,3 +171,58 @@ class Hist2D(_BaseHist):
         ax.set_ylabel(self.y_label)
         ax.set_title(f"{self.y_label} vs {self.x_label}  (N={self.n_total:,})")
         return ax, mesh
+    
+    def save(self, run: "RunDir", name: str) -> Path:
+        """Save histogram counts and metadata to a RunDir."""
+        import json
+        out = run.results / f"{name}.npz"
+        meta = {
+            "n_total": self.n_total,
+            "type":    self.__class__.__name__,
+        }
+        if isinstance(self, Hist1D):
+            np.savez(out, counts=self.counts, bins=self.bins, **meta)
+            (run.results / f"{name}_meta.json").write_text(
+                json.dumps({**meta, "label": self.label})
+            )
+        elif isinstance(self, Hist2D):
+            np.savez(out, counts=self.counts, x_bins=self.x_bins, y_bins=self.y_bins)
+            (run.results / f"{name}_meta.json").write_text(
+                json.dumps({**meta, "x_label": self.x_label, "y_label": self.y_label})
+            )
+        print(f"Hist   → {out}")
+        return out
+
+    @classmethod
+    def load(cls, run: "RunDir", name: str) -> "Hist1D | Hist2D":
+        """Load a histogram from a RunDir."""
+        import json
+        npz  = np.load(run.results / f"{name}.npz")
+        meta = json.loads((run.results / f"{name}_meta.json").read_text())
+
+        if meta["type"] == "Hist1D":
+            h         = Hist1D.__new__(Hist1D)
+            h.bins    = npz["bins"]
+            h.label   = meta["label"]
+            h.counts  = npz["counts"]
+            h.n_total = meta["n_total"]
+            h._counts = h.counts
+        elif meta["type"] == "Hist2D":
+            h         = Hist2D.__new__(Hist2D)
+            h.x_bins  = npz["x_bins"]
+            h.y_bins  = npz["y_bins"]
+            h.x_label = meta["x_label"]
+            h.y_label = meta["y_label"]
+            h.counts  = npz["counts"]
+            h.n_total = meta["n_total"]
+            h._counts = h.counts
+        else:
+            raise ValueError(f"Unknown histogram type: {meta['type']}")
+
+        # mark as not needing recompute
+        h.filters       = []
+        h.prepare_fn    = None
+        h.files         = []
+        h.lf            = None
+        h.target_ram_gb = None
+        return h

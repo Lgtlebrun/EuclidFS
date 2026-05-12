@@ -1,93 +1,41 @@
-import argparse
-import numpy as np
-import matplotlib.pyplot as plt
+from EuclidFS.histogram import Hist1D, Hist2D
+from EuclidFS.colour_cuts import apply_lrg_cuts
 import polars as pl
-from pathlib import Path
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from EuclidFS.data import load_lazy
+import numpy as np
+from EuclidFS.data import random_sample
 from EuclidFS.config import RunDir
+from pathlib import Path
+import argparse
 
-PARAMS = {
-    "mag_cols"    : ["abs_mag_r01", "euclid_nisp_h", "lsst_r", "lsst_i", "sdss_r"],
-    "redshift_col": "true_redshift_gal",
-    "sample_frac" : 0.001,
-    "bucket_ids"  : None,
-}
-
-def plot_mag_vs_redshift(z, mag, mag_col, redshift_col, redshift_max, mag_max):
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    h = axes[0].hist2d(z, mag, bins=200, cmap="inferno")
-    fig.colorbar(h[3], ax=axes[0], label="count")
-    axes[0].set_xlabel(redshift_col)
-    axes[0].set_ylabel(mag_col)
-    axes[0].set_title("2D histogram")
-    rng = np.random.default_rng(42)
-    idx = rng.choice(len(z), min(50_000, len(z)), replace=False)
-    axes[1].scatter(z[idx], mag[idx], s=0.3, alpha=0.3, c="steelblue")
-    axes[1].set_xlabel(redshift_col)
-    axes[1].set_ylabel(mag_col)
-    axes[1].set_title(f"Scatter (N={len(idx):,})")
-    cut_info = f"z < {redshift_max}"
-    if mag_max is not None:
-        cut_info += f"  |  abs_mag_r01 < {mag_max}"
-    plt.suptitle(f"{mag_col} vs {redshift_col}  [{cut_info}]")
-    plt.tight_layout()
-    return fig
+"""Computes 2D histogram of magnitude vs redshift, with given constraints, e.g. apply lrg cuts"""
 
 if __name__ == "__main__":
+
+    run = RunDir("mag_vs_z")
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--redshift-max", type=float, default=3.0,
                         help="Maximum redshift cut")
-    parser.add_argument("--mag-max",      type=float, default=None,
-                        help="Absolute magnitude cut on abs_mag_r01 (e.g. -21.0)")
+    parser.add_argument("--mag-max",      type=float, default=30,
+                        help="Absolute magnitude cut on W! (e.g. 0)")
     args = parser.parse_args()
 
     redshift_max = args.redshift_max
     mag_max      = args.mag_max
 
-    # encode cuts in run name so each subjob gets its own output dir
-    cut_tag = f"z{redshift_max}"
-    if mag_max is not None:
-        cut_tag += f"_m{mag_max}"
-    run = RunDir(f"mag_vs_redshift_{cut_tag}")
+    h = Hist2D(
+        x         = pl.col("true_redshift_gal"),
+        y         = pl.col("wise_w1_mag"),
+        x_bins    = np.linspace(0, redshift_max, 201),
+        y_bins    = np.linspace(14, mag_max, 201),
+        x_label   = "redshift",
+        y_label   = "W1",
+        prepare_fn=apply_lrg_cuts
+    ).compute()
 
-    params_out = {**PARAMS, "redshift_max": redshift_max, "mag_max": mag_max}
-    run.save_result(params_out, "params.json")
+    fig, ax = h.plot()
+    run.save_plot(fig, "hist2d_mag_vs_z")
 
-    select_cols = (
-        ["galaxy_id", PARAMS["redshift_col"], "random_index"]
-        + PARAMS["mag_cols"]
-    )
+    h.save(run, name="h2D_mag_vs_z")
 
-    print(f"Loading data lazily  (z < {redshift_max}, mag_max={mag_max})...")
-    lf = (
-        load_lazy(bucket_ids=PARAMS["bucket_ids"], select=select_cols)
-        .filter(pl.col(PARAMS["redshift_col"]) < redshift_max)
-        .filter(pl.col("random_index") < PARAMS["sample_frac"])
-    )
-    if mag_max is not None:
-        lf = lf.filter(pl.col("abs_mag_r01") < mag_max)
-
-    print(lf.explain(optimized=True))
-    df = lf.collect()
-    print(f"Got {len(df):,} galaxies after cuts, plotting...")
-
-    if len(df) == 0:
-        print("WARNING: no galaxies pass cuts — skipping plots.")
-        sys.exit(0)
-
-    z = df[PARAMS["redshift_col"]].to_numpy()
-    for mag_col in PARAMS["mag_cols"]:
-        print(f"  plotting {mag_col}...")
-        mag = df[mag_col].to_numpy()
-        fig = plot_mag_vs_redshift(z, mag, mag_col, PARAMS["redshift_col"],
-                                   redshift_max, mag_max)
-        run.save_plot(fig, f"{mag_col}_vs_{PARAMS['redshift_col']}.png")
-        plt.close(fig)
-
-    run.save_result(
-        df.select(PARAMS["mag_cols"] + [PARAMS["redshift_col"]]).describe(),
-        "summary_stats.csv"
-    )
     print("Done!")

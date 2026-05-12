@@ -2,8 +2,8 @@
 #SBATCH --job-name=mag_vs_z_grid
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=16000
-#SBATCH --time=00:30:00
-#SBATCH --array=0-15          # 4 z_max x 4 mag_max = 16 combinations
+#SBATCH --time=04:00:00
+#SBATCH --array=0-3          # 4 z_max x 4 mag_max = 16 combinations
 #SBATCH --output=/home/llebru/DS_selection_effects/logs/%j_%a_mag_vs_z.log
 #SBATCH --error=/home/llebru/DS_selection_effects/logs/%j_%a_mag_vs_z.log
 
@@ -13,7 +13,7 @@ source .venv/bin/activate
 
 # define the grids
 Z_MAX_VALUES=(0.5 1.0 2.0 3.0)
-MAG_MAX_VALUES=(-13.0 -14.0 -16.0 -20.0)
+MAG_MAX_VALUES=(30)
 
 # map flat array index → (z_idx, mag_idx)
 N_MAG=${#MAG_MAX_VALUES[@]}        # 4
