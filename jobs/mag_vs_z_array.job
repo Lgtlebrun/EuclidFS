@@ -10,7 +10,9 @@
 source ~/.bashrc
 cd /home/llebru/DS_selection_effects
 source .venv/bin/activate
-
+# load .env first 
+ENV_FILE="EuclidFS/.env"
+set -a; source "$ENV_FILE"; set +a
 # define the grids
 Z_MAX_VALUES=(0.5 1.0 2.0 3.0)
 MAG_MAX_VALUES=(30)
