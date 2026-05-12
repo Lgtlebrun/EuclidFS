@@ -53,6 +53,8 @@ class _BaseHist:
                                      target_ram_gb=self.target_ram_gb)
             total  = 1  # tqdm unknown total
         else:
+            #TODO remove
+            print("DEBUG : Entering iter_chunks")
             chunks = iter_chunks(self.files, prepare=prepare,
                                 target_ram_gb=self.target_ram_gb)
             total  = len(self.files)

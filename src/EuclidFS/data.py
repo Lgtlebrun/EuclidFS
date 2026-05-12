@@ -113,14 +113,18 @@ def iter_chunks(
     to yield chunks that actually fill the target RAM.
     """
     # 1. Setup the source
+    #TODO remove
+    print("scanning lf")
     if lf is None:
         files = files or DATA_FILES
         # SCAN ALL FILES AT ONCE - This is the key change
         lf = pl.scan_parquet(files)
+    print("lf scanned !")
 
     # 2. Apply transformations
     if prepare is not None:
         lf = prepare(lf)
+    print("lf prepared !")
 
     # 3. Calculate actual chunk size based on target RAM
     target_gb = target_ram_gb or (available_ram_gb() * RAM_SAFETY_FACTOR)
@@ -146,7 +150,7 @@ def iter_chunks(
         
         offset += chunk_size
         del chunk # Explicitly clear for the next big allocation
-        
+
 
 def _iter_lazyframe(
     lf:            pl.LazyFrame,
