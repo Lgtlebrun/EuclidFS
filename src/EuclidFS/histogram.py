@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import polars as pl
 from tqdm import tqdm
-from .data import iter_files, _iter_lazyframe, DATA_FILES
+from .data import iter_chunks, _iter_lazyframe, DATA_FILES
 from typing import Callable
 from pathlib import Path
 
@@ -53,7 +53,7 @@ class _BaseHist:
                                      target_ram_gb=self.target_ram_gb)
             total  = 1  # tqdm unknown total
         else:
-            chunks = iter_files(self.files, prepare=prepare,
+            chunks = iter_chunks(self.files, prepare=prepare,
                                 target_ram_gb=self.target_ram_gb)
             total  = len(self.files)
 

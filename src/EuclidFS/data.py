@@ -102,41 +102,51 @@ def load_lazy(
 
     return lf
 
-def iter_files(
-    files:         list[Path] | None = None,
-    prepare:       Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
+def iter_chunks(
+    files: list[Path] | None = None,
+    lf: pl.LazyFrame | None = None,
+    prepare: Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
     target_ram_gb: float | None = None,
 ) -> Iterator[pl.DataFrame]:
     """
-    Yields chunks of data across all parquet files, RAM-safe.
+    Consolidated chunker: Scans all files at once or uses a provided LazyFrame
+    to yield chunks that actually fill the target RAM.
     """
-    target_gb    = target_ram_gb or (available_ram_gb() * RAM_SAFETY_FACTOR)
-    files        = files or DATA_FILES
+    # 1. Setup the source
+    if lf is None:
+        files = files or DATA_FILES
+        # SCAN ALL FILES AT ONCE - This is the key change
+        lf = pl.scan_parquet(files)
 
-    for path in files:
-        print(f"  file {path.name}  (RAM free: {available_ram_gb():.1f} GB)")
+    # 2. Apply transformations
+    if prepare is not None:
+        lf = prepare(lf)
 
-        lf = pl.scan_parquet(path)
+    # 3. Calculate actual chunk size based on target RAM
+    target_gb = target_ram_gb or (available_ram_gb() * RAM_SAFETY_FACTOR)
+    
+    # We collect a small sample to see how 'heavy' each row is after preparation
+    sample = lf.limit(10_000).collect()
+    if len(sample) == 0:
+        return
 
-        if prepare is not None:
-            lf = prepare(lf)
+    chunk_size = estimate_chunk_size(sample, target_gb)
+    print(f"DEBUG: Optimized Chunk Size = {chunk_size:,} rows (~{target_gb:.1f} GB)")
 
-        sample = lf.limit(1000).collect()
-        if len(sample) == 0:
-            print(f"    skipping — empty after prepare()")
-            continue
-
-        chunk_size = estimate_chunk_size(sample, target_gb)
-        print(f"    chunk size: {chunk_size:,}")
-
-        offset = 0
-        while True:
-            chunk = lf.slice(offset, chunk_size).collect()
-            if len(chunk) == 0:
-                break
-            yield chunk
-            offset += chunk_size
-            del chunk
+    # 4. Stream the giant LazyFrame in massive chunks
+    offset = 0
+    while True:
+        # Polars handles the parallel disk I/O across multiple files here
+        chunk = lf.slice(offset, chunk_size).collect()
+        
+        if len(chunk) == 0:
+            break
+            
+        yield chunk
+        
+        offset += chunk_size
+        del chunk # Explicitly clear for the next big allocation
+        
 
 def _iter_lazyframe(
     lf:            pl.LazyFrame,
