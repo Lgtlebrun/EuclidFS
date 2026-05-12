@@ -1,5 +1,5 @@
 #!/usr/bin/bash -l
-#SBATCH --job-name=lrg_colours
+#SBATCH --job-name=partition
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=400000
 #SBATCH --time=12:00:00
