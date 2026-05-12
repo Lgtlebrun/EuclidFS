@@ -46,4 +46,4 @@ def repartition_files(
 if __name__ == "__main__":
     INPUT_PATTERN = "/shares/soares-santos.physik.uzh/euclid/bucketsx8_with_w/*.parquet"
     OUTPUT_FOLDER = Path("/shares/soares-santos.physik.uzh/euclid/bucketsx8_with_w/small_files")
-    repartition_files(INPUT_PATTERN, output_dir=OUTPUT_FOLDER, n_partitions=100)
+    repartition_files(INPUT_PATTERN, output_dir=OUTPUT_FOLDER, n_partitions=1000)
