@@ -1,7 +1,7 @@
 #!/usr/bin/bash -l
 #SBATCH --job-name=partition
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=1000000
+#SBATCH --mem=100000
 #SBATCH --time=12:00:00
 #SBATCH --output=/home/llebru/DS_selection_effects/logs/%j_partition.log
 #SBATCH --error=/home/llebru/DS_selection_effects/logs/%j_partition.log
