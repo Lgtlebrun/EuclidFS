@@ -164,13 +164,13 @@ class Hist2D(_BaseHist):
     def plot(self, ax=None, **kwargs):
         import matplotlib.pyplot as plt
         if ax is None:
-            _, ax = plt.subplots(figsize=(8, 5))
+            fig, ax = plt.subplots(figsize=(8, 5))
         mesh = ax.pcolormesh(self.x_bins, self.y_bins, self.counts.T,
                              cmap="inferno", **kwargs)
         ax.set_xlabel(self.x_label)
         ax.set_ylabel(self.y_label)
         ax.set_title(f"{self.y_label} vs {self.x_label}  (N={self.n_total:,})")
-        return ax, mesh
+        return fig, ax
     
     def save(self, run: "RunDir", name: str) -> Path:
         """Save histogram counts and metadata to a RunDir."""
