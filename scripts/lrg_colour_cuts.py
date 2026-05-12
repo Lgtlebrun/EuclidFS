@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from EuclidFS.data import load_lazy
 from EuclidFS.colour_cuts import apply_lrg_cuts, DESI_LRG_COLUMNS
 from EuclidFS.config import RunDir
+from EuclidFS.histogram import Hist1D, Hist2D
 
 REDSHIFT_COL = "true_redshift_gal"
 ZMAX         = 1.3
@@ -133,12 +134,21 @@ if __name__ == "__main__":
     run = RunDir("lrg_colour_cuts")
 
     print(f"Loading and applying LRG cuts with redshift z < {ZMAX}...")
-    query = load_lazy(n_rows = N_SCATTER, prepare=apply_lrg_cuts, filters=[pl.col(REDSHIFT_COL) < ZMAX], select=list(COLUMNS))
-    print(query.explain(streaming=True))
-    df_lrg = (
-        load_lazy(n_rows = N_SCATTER, prepare=apply_lrg_cuts, filters=[pl.col(REDSHIFT_COL) < ZMAX], select=list(COLUMNS))
-        .collect(streaming=True)
-    )
+    # query = load_lazy(n_rows = N_SCATTER, prepare=apply_lrg_cuts, filters=[pl.col(REDSHIFT_COL) < ZMAX], select=list(COLUMNS))
+    # print(query.explain(streaming=True))
+    lf_lrg = load_lazy(
+    prepare = apply_lrg_cuts,
+    filters = [pl.col(REDSHIFT_COL) < ZMAX],
+    select  = list(COLUMNS),
+    )  # full lazy frame — no n_rows
+
+    df_lrg = load_lazy(
+        n_rows  = N_SCATTER,
+        prepare = apply_lrg_cuts,
+        filters = [pl.col(REDSHIFT_COL) < ZMAX],
+        select  = list(COLUMNS),
+    ).collect()  # only N_SCATTER rows, fast since files sorted by random_index
+    
     print(f"  {len(df_lrg):,} LRG galaxies selected")
 
     if len(df_lrg) == 0:
@@ -158,6 +168,24 @@ if __name__ == "__main__":
     print("Plotting z-W1 vs r-z...")
     run.save_plot(plot_zw1_vs_rz(random, REDSHIFT_COL),   "zw1_vs_rz.png")
     plt.close()
+
+    # histograms — reuse same lf, no rescan
+    hist_z = Hist1D(
+        expr   = pl.col(REDSHIFT_COL),
+        bins   = np.linspace(0, ZMAX, 201),
+        label  = "redshift",
+        lf     = lf_lrg,   # ← reuse
+    ).compute()
+
+    hist_rw1 = Hist2D(
+        x       = pl.col(REDSHIFT_COL),
+        y       = pl.col("sdss_r_mag") - pl.col("wise_w1_mag"),
+        x_bins  = np.linspace(0, ZMAX, 201),
+        y_bins  = np.linspace(-1, 8, 201),
+        x_label = "redshift",
+        y_label = "r - W1",
+        lf      = lf_lrg,   # ← reuse
+    ).compute()
 
     run.save_result(
         df_lrg.select(["wise_w1_mag", "sdss_r_mag", "sdss_g_mag",

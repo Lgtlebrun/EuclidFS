@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import polars as pl
 from tqdm import tqdm
-from .data import iter_files, DATA_FILES
+from .data import iter_files, _iter_lazyframe, DATA_FILES
 from typing import Callable
 from pathlib import Path
 
@@ -18,11 +18,13 @@ class _BaseHist:
         filters:       list[pl.Expr] | None = None,
         prepare_fn:    Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
         files:    list[Path] | None = None,
+        lf:            pl.LazyFrame | None = None,
         target_ram_gb: float | None = None,
     ):
         self.prepare_fn    = prepare_fn
         self.filters       = filters    or []
         self.files    = files or DATA_FILES
+        self.lf            = lf
         self.target_ram_gb = target_ram_gb
 
     def _prepare(self, exprs: list[pl.Expr]) -> Callable:
@@ -42,14 +44,21 @@ class _BaseHist:
         return prepare
 
     def _run(self, exprs: list[pl.Expr], desc: str) -> None:
+        prepare   = self._prepare(exprs)
+        col_names = [f"__col{i}__" for i in range(len(exprs))]
 
-        prepare    = self._prepare(exprs)
-        col_names  = [f"__col{i}__" for i in range(len(exprs))]
-        n_files = len(self.files)
+        if self.lf is not None:
+            # use provided lazy frame directly — no file scan
+            chunks = _iter_lazyframe(self.lf, prepare=prepare,
+                                     target_ram_gb=self.target_ram_gb)
+            total  = 1  # tqdm unknown total
+        else:
+            chunks = iter_files(self.files, prepare=prepare,
+                                target_ram_gb=self.target_ram_gb)
+            total  = len(self.files)
 
-        with tqdm(total=n_files, desc=desc, unit="bucket") as pbar:
-            for chunk in iter_files(self.files, prepare=prepare,
-                                      target_ram_gb=self.target_ram_gb):
+        with tqdm(total=total, desc=desc, unit="chunk") as pbar:
+            for chunk in chunks:
                 arrays = [chunk[c].to_numpy() for c in col_names]
                 self._accumulate(arrays)
                 pbar.update(1)
@@ -82,6 +91,7 @@ class Hist1D(_BaseHist):
     filters:       list[pl.Expr]  = field(default_factory=list)
     prepare_fn:    Callable | None       = None
     files:         list[Path]      | None = None
+    lf:            pl.LazyFrame    | None = None 
     target_ram_gb: float          | None = None
 
     # results — populated by compute()
@@ -90,7 +100,7 @@ class Hist1D(_BaseHist):
 
     def __post_init__(self):
         _BaseHist.__init__(self, self.filters, self.prepare_fn,
-                           self.files, self.target_ram_gb)
+                           self.files,  self.lf, self.target_ram_gb)
         self._counts = np.zeros(len(self.bins) - 1, dtype=np.int64)
 
     def _accumulate(self, arrays):
@@ -118,41 +128,26 @@ class Hist1D(_BaseHist):
 
 @dataclass
 class Hist2D(_BaseHist):
-    """
-    2D histogram accumulated in RAM-safe chunks over the full catalog.
-
-    Usage
-    -----
-        h = Hist2D(
-                x       = pl.col("true_redshift_gal"),
-                y       = pl.col("sdss_r_mag") - pl.col("wise_w1_mag"),
-                x_bins  = np.linspace(0, 1.3, 201),
-                y_bins  = np.linspace(-1, 8,   201),
-                x_label = "redshift",
-                y_label = "r - W1",
-                filters   = [DESI_LRG_CUT],
-            ).compute()
-        ax, mesh = h.plot()
-    """
     x:             pl.Expr
     y:             pl.Expr
     x_bins:        np.ndarray
     y_bins:        np.ndarray
     x_label:       str
     y_label:       str
-    filters:       list[pl.Expr]  = field(default_factory=list)
-    prepare_fn:    Callable | None       = None
+    filters:       list[pl.Expr]   = field(default_factory=list)
+    prepare_fn:    Callable | None = None
     files:         list[Path]      | None = None
-    target_ram_gb: float          | None = None
+    lf:            pl.LazyFrame    | None = None  
+    target_ram_gb: float           | None = None
 
-    # results — populated by compute()
     counts:  np.ndarray | None = field(default=None, init=False)
     n_total: int               = field(default=0,    init=False)
 
     def __post_init__(self):
         _BaseHist.__init__(self, self.filters, self.prepare_fn,
-                           self.files, self.target_ram_gb)
-        self._counts = np.zeros((len(self.x_bins) - 1, len(self.y_bins) - 1), dtype=np.int64)
+                           self.files, self.lf, self.target_ram_gb)
+        self._counts = np.zeros((len(self.x_bins)-1, len(self.y_bins)-1), dtype=np.int64)
+    # rest unchanged
 
     def _accumulate(self, arrays):
         x, y = arrays

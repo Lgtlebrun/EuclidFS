@@ -139,6 +139,29 @@ def iter_files(
             offset += chunk_size
             del chunk
 
+def _iter_lazyframe(
+    lf:            pl.LazyFrame,
+    prepare:       Callable[[pl.LazyFrame], pl.LazyFrame] | None = None,
+    target_ram_gb: float | None = None,
+) -> Iterator[pl.DataFrame]:
+    target_gb = target_ram_gb or (available_ram_gb() * RAM_SAFETY_FACTOR)
+
+    if prepare is not None:
+        lf = prepare(lf)
+
+    sample = lf.limit(1000).collect()
+    if len(sample) == 0:
+        return
+
+    chunk_size = estimate_chunk_size(sample, target_gb)
+    offset     = 0
+    while True:
+        chunk = lf.slice(offset, chunk_size).collect()
+        if len(chunk) == 0:
+            break
+        yield chunk
+        offset += chunk_size
+        del chunk
 
 def random_sample_lazy(
     n:       int = 50_000,
