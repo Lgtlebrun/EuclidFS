@@ -4,9 +4,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from EuclidFS.config import RunDir
 import polars as pl
-from EuclidFS.colour_cuts import apply_colour_cuts
+from EuclidFS.colour_cuts import apply_lrg_cuts
 from EuclidFS.data import load_lazy
-from EuclidFS.colour_cuts import DESI_LRG_CUT
 
 run = RunDir("try_cuts")
 redshift_col = "true_redshift_gal"
@@ -63,7 +62,7 @@ for z_max in [1.0, 1.5, 2.0]:
 
 # ── colour cuts ───────────────────────────────────────────────────────────────
 print()
-n_lrg = lf_base.filter(DESI_LRG_CUT).select(pl.len()).collect(streaming=True).item()
+n_lrg = lf_base.pipe(apply_lrg_cuts).select(pl.len()).collect(streaming=True).item()
 print(f"  DESI LRG cut: {n_lrg:,}  ({100*n_lrg/n_base:.1f}%)")
 
 
