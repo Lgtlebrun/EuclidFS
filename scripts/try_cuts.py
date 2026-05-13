@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--n_rows", type=int, default=1e6, help="Number of random rows")
+    parser.add_argument("--n_rows", type=int, default=int(1e6), help="Number of random rows")
     parser.add_argument("--redshift-max", type=float, default=3.0,
                         help="Maximum redshift cut")
     parser.add_argument("--mag-max",      type=float, default=30,
