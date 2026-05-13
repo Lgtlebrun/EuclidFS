@@ -34,8 +34,8 @@ if __name__ == "__main__":
     ).compute()
 
     fig, ax = h.plot()
-    run.save_plot(fig, "hist2d_mag_vs_z")
+    run.save_plot(fig, f"hist2d_mag_vs_z_M{mag_max}_Z{redshift_max}")
 
-    h.save(run, name="h2D_mag_vs_z")
+    h.save(run, name=f"h2D_mag_vs_z_M{mag_max}_Z{redshift_max}")
 
     print("Done!")
