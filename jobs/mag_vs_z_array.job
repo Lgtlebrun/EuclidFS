@@ -1,5 +1,5 @@
 #!/usr/bin/bash -l
-#SBATCH --job-name=mag_vs_z_grid
+#SBATCH --job-name=mag_vs_z_grid_RED
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=64000
 #SBATCH --time=04:00:00
@@ -24,11 +24,12 @@ M_IDX=$(( SLURM_ARRAY_TASK_ID % N_MAG ))
 
 Z_MAX=${Z_MAX_VALUES[$Z_IDX]}
 MAG_MAX=${MAG_MAX_VALUES[$M_IDX]}
+MAG_COL="sdss_r_mag"
 
 echo "Task ${SLURM_ARRAY_TASK_ID}: z_max=${Z_MAX}  mag_max=${MAG_MAX}"
 
 START=$(date +%s)
-python -u EuclidFS/scripts/mag_vs_redshift.py --redshift-max ${Z_MAX} --mag-max ${MAG_MAX}
+python -u EuclidFS/scripts/mag_vs_redshift.py --redshift-max ${Z_MAX} --mag-max ${MAG_MAX} --mag_col ${MAG_COL}
 EXIT_CODE=$?
 END=$(date +%s)
 DURATION=$((END - START))
