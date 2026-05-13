@@ -10,22 +10,13 @@ from EuclidFS.data import load_lazy
 run = RunDir("try_cuts")
 redshift_col = "true_redshift_gal"
 select_cols = (
-    ["ra_gal", "dec_gal", "abs_mag_r01", "euclid_nisp_h", "lsst_r", "lsst_g", "lsst_z", "lsst_i", "sdss_r", "wise_w1", "wise_w2", redshift_col, "random_index"]
+    ["ra_gal", "dec_gal", "abs_mag_r01", "euclid_nisp_h_mag", "lsst_r_mag", "lsst_g_mag", "lsst_z_mag", "lsst_i_mag", "sdss_r_mag", "wise_w1_mag", "wise_w2_mag", redshift_col, "random_index"]
 )
 print(f"Selecting columns: {select_cols}")
 
 # ── base lazy frame ───────────────────────────────────────────────────────────
 lf_base : pl.LazyFrame= (
-    load_lazy(bucket_ids=None, select=select_cols, filters = [(pl.col(redshift_col) < 3.0)]).with_columns([
-            pl.when(pl.col("wise_w1") > 0)
-              .then(-2.5 * pl.col("wise_w1").log(base=10) - 48.6)
-              .otherwise(None)
-              .alias("wise_w1_mag"),
-            pl.when(pl.col("wise_w2") > 0)
-              .then(-2.5 * pl.col("wise_w2").log(base=10) - 48.6)
-              .otherwise(None)
-              .alias("wise_w2_mag"),
-        ])
+    load_lazy(select=select_cols, filters = [(pl.col(redshift_col) < 3.0)])
 )
 
 # safe — only fetches schema, no data
