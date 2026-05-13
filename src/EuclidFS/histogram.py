@@ -232,7 +232,7 @@ class Hist2D(_BaseHist):
         self.n_total = int(self.counts.sum())
         return self
 
-    def plot(self, ax=None, **kwargs):
+    def plot(self, ax=None, title = None, **kwargs):
         import matplotlib.pyplot as plt
         if ax is None:
             fig, ax = plt.subplots(figsize=(8, 5))
@@ -240,7 +240,11 @@ class Hist2D(_BaseHist):
                             cmap="inferno", shading='auto', **kwargs)
         ax.set_xlabel(self.x_label)
         ax.set_ylabel(self.y_label)
-        ax.set_title(f"{self.y_label} vs {self.x_label}  (N={self.n_total:,})")
+        if title :
+            title += "  (N={self.n_total:,})"
+            ax.set_title(title)
+        else:
+            ax.set_title(f"{self.y_label} vs {self.x_label}  (N={self.n_total:,})")
         return fig, ax
         
     def save(self, run: "RunDir", name: str) -> Path:

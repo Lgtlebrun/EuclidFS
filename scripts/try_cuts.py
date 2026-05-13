@@ -72,13 +72,13 @@ if __name__ == "__main__":
 
     # ── 1-D LRG: fraction surviving z cut ────────────────────────────────
     z_fracs_lrg = np.array([
-        df_lrg.filter(pl.col(redshift_col) < z).height / n_lrg
+        df_lrg.filter(pl.col(redshift_col) < z).height / n_base
         for z in Z_CUTS
     ])
 
     # ── 1-D LRG: fraction surviving mag cut ──────────────────────────────
     mag_fracs_lrg = np.array([
-        df_lrg.filter(pl.col(mag_col) < m).height / n_lrg
+        df_lrg.filter(pl.col(mag_col) < m).height / n_base
         for m in MAG_CUTS
     ])
 
@@ -89,7 +89,7 @@ if __name__ == "__main__":
             heat_lrg[i, j] = (
                 df_lrg.filter(
                     (pl.col(redshift_col) < z) & (pl.col(mag_col) < m)
-                ).height / n_lrg
+                ).height / n_base
             )
 
     # ══ PLOTS ═════════════════════════════════════════════════════════════

@@ -1,13 +1,15 @@
-from EuclidFS.histogram import Hist1D, Hist2D
+from EuclidFS.histogram import Hist2D
 from EuclidFS.colour_cuts import apply_lrg_cuts
 import polars as pl
 import numpy as np
-from EuclidFS.data import random_sample
 from EuclidFS.config import RunDir
 from pathlib import Path
 import argparse
 
 """Computes 2D histogram of magnitude vs redshift, with given constraints, e.g. apply lrg cuts"""
+
+nocut = (None, None)
+lrg_cut = ("LRG cut", apply_lrg_cuts)
 
 if __name__ == "__main__":
 
@@ -23,6 +25,8 @@ if __name__ == "__main__":
     redshift_max = args.redshift_max
     mag_max      = args.mag_max
 
+    cut = lrg_cut
+
     h = Hist2D(
         x         = pl.col("true_redshift_gal"),
         y         = pl.col("wise_w1_mag"),
@@ -30,10 +34,10 @@ if __name__ == "__main__":
         y_bins    = np.linspace(14, mag_max, 201),
         x_label   = "redshift",
         y_label   = "W1",
-        prepare_fn=apply_lrg_cuts
+        prepare_fn=cut[1]
     ).compute()
 
-    fig, ax = h.plot()
+    fig, ax = h.plot(title=cut[0])
     run.save_plot(fig, f"hist2d_mag_vs_z_M{mag_max}_Z{redshift_max}")
 
     h.save(run, name=f"h2D_mag_vs_z_M{mag_max}_Z{redshift_max}")
