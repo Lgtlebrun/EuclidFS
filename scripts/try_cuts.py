@@ -6,7 +6,6 @@ from EuclidFS.config import RunDir
 import polars as pl
 from EuclidFS.colour_cuts import apply_lrg_cuts
 from EuclidFS.data import load_lazy
-
 import argparse
 
 if __name__ == "__main__":
@@ -26,6 +25,7 @@ if __name__ == "__main__":
 
     run = RunDir("try_cuts")
     redshift_col = "true_redshift_gal"
+    mag_col = "wise_w1_mag"
     select_cols = (
         ["ra_gal", "dec_gal", "abs_mag_r01", "euclid_nisp_h_mag", "sdss_r_mag", "sdss_g_mag", "sdss_z_mag", "sdss_i_mag", "wise_w1_mag", "wise_w2_mag", redshift_col, "random_index"]
     )
@@ -48,16 +48,16 @@ if __name__ == "__main__":
         print(f"  z < {z_max}: {n:,}  ({100*n/n_base:.1f}%)")
 
     for mag_cut in [-14.0, -16.0, -20.0, -21.0, -21.5, -22.0]:
-        n = df_base.filter(pl.col("abs_mag_r01") < mag_cut).height
-        print(f"  abs_mag_r01 < {mag_cut}: {n:,}  ({100*n/n_base:.1f}%)")
+        n = df_base.filter(pl.col(mag_col) < mag_cut).height
+        print(f"  {mag_col} < {mag_cut}: {n:,}  ({100*n/n_base:.1f}%)")
 
-    for z_max in [1.0, 1.5, 2.0]:
-        for mag_cut in [-14.0, -16.0, -20.0, -21.0, -21.5, -22.0]:
+    for z_max in [1.0, 1.5, 2.0, 2.5, 3]:
+        for mag_cut in range(14, 31):
             n = df_base.filter(
                 (pl.col(redshift_col) < z_max) & 
-                (pl.col("abs_mag_r01") < mag_cut)
+                (pl.col(mag_col) < mag_cut)
             ).height
-            print(f"  z < {z_max}  &  abs_mag < {mag_cut}: {n:,}  ({100*n/n_base:.1f}%)")
+            print(f"  z < {z_max}  &  {mag_col} < {mag_cut}: {n:,}  ({100*n/n_base:.1f}%)")
 
     # LRG cuts - apply on eager DataFrame
     n_lrg = apply_lrg_cuts(df_base.lazy()).collect().height
