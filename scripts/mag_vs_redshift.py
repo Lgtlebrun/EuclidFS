@@ -42,9 +42,12 @@ if __name__ == "__main__":
         prepare_fn=cut[1]
     ).compute()
 
-    fig, ax = h.plot(title=cut[0])
-    run.save_plot(fig, f"hist2d_{mag_col}_vs_z_M{mag_max}_Z{redshift_max}")
+    mag_max_str = str(mag_max).replace('.', 'p')
+    redshift_max_str = str(redshift_max).replace('.', 'p')
 
-    h.save(run, name=f"h2D_{mag_col}_vs_z_M{mag_max}_Z{redshift_max}")
+    fig, ax = h.plot(title=cut[0])
+    run.save_plot(fig, f"hist2d_{mag_col}_vs_z_M{mag_max_str}_Z{redshift_max_str}")
+
+    h.save(run, name=f"h2D_{mag_col}_vs_z_M{mag_max_str}_Z{redshift_max_str}")
 
     print("Done!")
