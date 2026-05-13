@@ -117,8 +117,8 @@ if __name__ == "__main__":
 
     def plot_2d_heat(heat, n, label, fname):
         fig, ax = plt.subplots(figsize=(10, 5))
-        vmin = np.min(heat)
-        vmax = np.max(heat)
+        vmin = np.min(heat*100)
+        vmax = np.max(heat*100)
         im = ax.imshow(
             heat * 100, aspect="auto", origin="lower", cmap="plasma",
             vmin=vmin, vmax=vmax,
