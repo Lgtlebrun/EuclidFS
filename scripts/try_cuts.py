@@ -27,7 +27,7 @@ if __name__ == "__main__":
     run = RunDir("try_cuts")
     redshift_col = "true_redshift_gal"
     select_cols = (
-        ["ra_gal", "dec_gal", "abs_mag_r01", "euclid_nisp_h_mag", "lsst_r_mag", "lsst_g_mag", "lsst_z_mag", "lsst_i_mag", "sdss_r_mag", "sdss_z_mag", "wise_w1_mag", "wise_w2_mag", redshift_col, "random_index"]
+        ["ra_gal", "dec_gal", "abs_mag_r01", "euclid_nisp_h_mag", "lsst_r_mag", "lsst_g_mag", "lsst_z_mag", "lsst_i_mag", "sdss_r_mag", "sdss_g_mag", "sdss_z_mag", "wise_w1_mag", "wise_w2_mag", redshift_col, "random_index"]
     )
     print(f"Selecting columns: {select_cols}")
 
