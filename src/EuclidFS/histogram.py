@@ -200,24 +200,35 @@ class Hist2D(_BaseHist):
         prepare_logic = self._prepare([self.x, self.y])
         lf = prepare_logic(lf)
 
-        # Calculate 2D bins
         res = (
             lf.select([
-                pl.col("__col0__").cut(self.x_bins, left_closed=True).alias("bx"),
-                pl.col("__col1__").cut(self.y_bins, left_closed=True).alias("by"),
+                pl.col("__col0__").cut(self.x_bins[1:], left_closed=True).alias("bx"),
+                pl.col("__col1__").cut(self.y_bins[1:], left_closed=True).alias("by"),
             ])
             .group_by(["bx", "by"])
             .len()
             .collect(streaming=True)
         )
 
-        # Pivot or pivot-table back into the 2D numpy shape
-        # This part is light-weight because the 'res' dataframe is small (bin_count^2)
-        pivot = res.pivot(on="by", index="bx", values="len").sort("bx")
-        
-        # Fill the pre-allocated _counts matrix
-        # (Mapping logic to handle category types to numpy indices goes here)
-        self.counts = pivot.select(pl.exclude("bx")).fill_null(0).to_numpy()
+        # Build full index of all expected bin combinations
+        x_cats = [str(v) for v in self.x_bins[1:]]
+        y_cats = [str(v) for v in self.y_bins[1:]]
+        full_index = pl.DataFrame({
+            "bx": pl.Series(x_cats * len(y_cats)),
+            "by": pl.Series([y for y in y_cats for _ in x_cats]),
+        })
+
+        # Left join → missing bins become 0
+        filled = (
+            full_index
+            .join(res.with_columns([
+                pl.col("bx").cast(pl.Utf8),
+                pl.col("by").cast(pl.Utf8),
+            ]), on=["bx", "by"], how="left")
+            .fill_null(0)
+        )
+
+        self.counts = filled["len"].to_numpy().reshape(len(x_cats), len(y_cats))
         self.n_total = int(self.counts.sum())
         return self
 
@@ -226,12 +237,12 @@ class Hist2D(_BaseHist):
         if ax is None:
             fig, ax = plt.subplots(figsize=(8, 5))
         mesh = ax.pcolormesh(self.x_bins, self.y_bins, self.counts.T,
-                             cmap="inferno", **kwargs)
+                            cmap="inferno", shading='auto', **kwargs)
         ax.set_xlabel(self.x_label)
         ax.set_ylabel(self.y_label)
         ax.set_title(f"{self.y_label} vs {self.x_label}  (N={self.n_total:,})")
         return fig, ax
-    
+        
     def save(self, run: "RunDir", name: str) -> Path:
         """Save histogram counts and metadata to a RunDir."""
         import json
