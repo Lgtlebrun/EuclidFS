@@ -47,7 +47,7 @@ if __name__ == "__main__":
         n = df_base.filter(pl.col(redshift_col) < z_max).height
         print(f"  z < {z_max}: {n:,}  ({100*n/n_base:.1f}%)")
 
-    for mag_cut in [-14.0, -16.0, -20.0, -21.0, -21.5, -22.0]:
+    for mag_cut in range(14, 31):
         n = df_base.filter(pl.col(mag_col) < mag_cut).height
         print(f"  {mag_col} < {mag_cut}: {n:,}  ({100*n/n_base:.1f}%)")
 
