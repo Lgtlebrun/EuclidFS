@@ -29,7 +29,7 @@ MAG_COL="sdss_r_mag"
 echo "Task ${SLURM_ARRAY_TASK_ID}: z_max=${Z_MAX}  mag_max=${MAG_MAX}"
 
 START=$(date +%s)
-python -u EuclidFS/scripts/mag_vs_redshift.py --redshift-max ${Z_MAX} --mag-max ${MAG_MAX} --mag_col ${MAG_COL}
+python -u EuclidFS/scripts/mag_vs_redshift.py --redshift-max ${Z_MAX} --mag-max ${MAG_MAX} --mag-col ${MAG_COL}
 EXIT_CODE=$?
 END=$(date +%s)
 DURATION=$((END - START))
