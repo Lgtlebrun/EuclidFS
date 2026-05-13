@@ -1,7 +1,7 @@
 #!/usr/bin/bash -l
 #SBATCH --job-name=mag_vs_z_grid
 #SBATCH --cpus-per-task=2
-#SBATCH --mem=16000
+#SBATCH --mem=64000
 #SBATCH --time=04:00:00
 #SBATCH --array=0-3          # 4 z_max x 4 mag_max = 16 combinations
 #SBATCH --output=/home/llebru/DS_selection_effects/logs/%j_%a_mag_vs_z.log

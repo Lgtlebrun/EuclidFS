@@ -1,7 +1,7 @@
 #!/usr/bin/bash -l
 #SBATCH --job-name=mag_vs_z
-#SBATCH --cpus-per-task=2
-#SBATCH --mem=16000
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=64000
 #SBATCH --time=00:30:00
 #SBATCH --output=/home/llebru/DS_selection_effects/logs/%j_mag_vs_z.log
 #SBATCH --error=/home/llebru/DS_selection_effects/logs/%j_mag_vs_z.log

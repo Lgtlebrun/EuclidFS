@@ -57,7 +57,22 @@ MAG_COLUMNS = list(FLUX2MAG_MAP.values())
 RAM_SAFETY_FACTOR = float(os.getenv("RAM_SAFETY_FACTOR", 0.6))
 
 def available_ram_gb() -> float:
-    return psutil.virtual_memory().available / 1e9
+    mem_per_node = os.environ.get("SLURM_MEM_PER_NODE")
+    if mem_per_node:
+        gb = float(mem_per_node) / 1024
+        print(f"DEBUG: RAM budget from SLURM_MEM_PER_NODE = {gb:.1f} GB")
+        return gb
+
+    mem_per_cpu = os.environ.get("SLURM_MEM_PER_CPU")
+    n_cpus = int(os.environ.get("SLURM_CPUS_PER_TASK", 1))
+    if mem_per_cpu:
+        gb = float(mem_per_cpu) * n_cpus / 1024
+        print(f"DEBUG: RAM budget from SLURM_MEM_PER_CPU × {n_cpus} = {gb:.1f} GB")
+        return gb
+
+    gb = psutil.virtual_memory().available / 1e9
+    print(f"DEBUG: RAM budget from psutil (local) = {gb:.1f} GB")
+    return gb
 
 def estimate_chunk_size(sample: pl.DataFrame, target_gb: float) -> int:
     bytes_per_row = sample.estimated_size() / len(sample)

@@ -116,6 +116,38 @@ class Hist1D(_BaseHist):
         self._run([self.expr], desc=self.label)
         self.counts = self._counts
         return self
+    
+    def compute_pl(self) -> Hist1D:
+        # 1. Build the LazyFrame
+        lf = pl.scan_parquet(self.files) if self.lf is None else self.lf
+        
+        # 2. Apply filters and preparation
+        prepare_logic = self._prepare([self.expr])
+        lf = prepare_logic(lf) 
+        
+        # 3. Perform the histogram compute in Polars
+        # We use 'cut' to bin the data. 'left=True' matches np.histogram behavior
+        res = (
+            lf.select(
+                pl.col("__col0__")
+                .cut(self.bins, left_closed=True, include_breaks=True)
+                .alias("br")
+            )
+            .unnest("br")
+            .group_by("breakpoint")
+            .len()
+            .collect(streaming=True) # Forces streaming mode for RAM safety
+            .sort("breakpoint")
+        )
+
+        # 4. Map Polars result back to self.counts
+        # Note: cut creates 'infinite' bins at edges; we align them to your bins
+        self.counts = res.filter(
+            pl.col("breakpoint").is_in(self.bins[1:])
+        )["len"].to_numpy()
+        
+        self.n_total = int(self.counts.sum())
+        return self
 
     def plot(self, ax=None, **kwargs):
         import matplotlib.pyplot as plt
@@ -161,6 +193,32 @@ class Hist2D(_BaseHist):
     def compute(self) -> Hist2D:
         self._run([self.x, self.y], desc=f"{self.x_label} vs {self.y_label}")
         self.counts = self._counts
+        return self
+    
+    def compute_pl(self) -> Hist2D:
+        lf = pl.scan_parquet(self.files) if self.lf is None else self.lf
+        prepare_logic = self._prepare([self.x, self.y])
+        lf = prepare_logic(lf)
+
+        # Calculate 2D bins
+        res = (
+            lf.select([
+                pl.col("__col0__").cut(self.x_bins, left_closed=True).alias("bx"),
+                pl.col("__col1__").cut(self.y_bins, left_closed=True).alias("by"),
+            ])
+            .group_by(["bx", "by"])
+            .len()
+            .collect(streaming=True)
+        )
+
+        # Pivot or pivot-table back into the 2D numpy shape
+        # This part is light-weight because the 'res' dataframe is small (bin_count^2)
+        pivot = res.pivot(on="by", index="bx", values="len").sort("bx")
+        
+        # Fill the pre-allocated _counts matrix
+        # (Mapping logic to handle category types to numpy indices goes here)
+        self.counts = pivot.select(pl.exclude("bx")).fill_null(0).to_numpy()
+        self.n_total = int(self.counts.sum())
         return self
 
     def plot(self, ax=None, **kwargs):
