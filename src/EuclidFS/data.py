@@ -67,7 +67,7 @@ def available_ram_gb() -> float:
     n_cpus = int(os.environ.get("SLURM_CPUS_PER_TASK", 1))
     if mem_per_cpu:
         gb = float(mem_per_cpu) * n_cpus / 1024
-        print(f"DEBUG: RAM budget from SLURM_MEM_PER_CPU × {n_cpus} = {gb:.1f} GB")
+        print(f"DEBUG: RAM budget from SLURM_MEM_PER_CPU x {n_cpus} = {gb:.1f} GB")
         return gb
 
     gb = psutil.virtual_memory().available / 1e9

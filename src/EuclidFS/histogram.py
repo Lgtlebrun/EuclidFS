@@ -244,7 +244,7 @@ class Hist2D(_BaseHist):
             title += "  (N={self.n_total:,})"
             ax.set_title(title)
         else:
-            ax.set_title(f"{self.y_label} vs {self.x_label}  (N={self.n_total:,})")
+            ax.set_title(f"{self.y_label} vs {self.x_label}  (N={self.n_total})")
         return fig, ax
         
     def save(self, run: "RunDir", name: str) -> Path:

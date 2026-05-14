@@ -46,8 +46,31 @@ if __name__ == "__main__":
     redshift_max_str = str(redshift_max).replace('.', 'p')
 
     fig, ax = h.plot(title=cut[0])
-    run.save_plot(fig, f"hist2d_{mag_col}_vs_z_M{mag_max_str}_Z{redshift_max_str}")
+    run.save_plot(fig, f"lrg_hist2d_{mag_col}_vs_z_M{mag_max_str}_Z{redshift_max_str}")
 
-    h.save(run, name=f"h2D_{mag_col}_vs_z_M{mag_max_str}_Z{redshift_max_str}")
+    h.save(run, name=f"lrg_h2D_{mag_col}_vs_z_M{mag_max_str}_Z{redshift_max_str}")
+    del h
+
+    def sample(lf:pl.LazyFrame):
+        return lf.head(10000000)    # 10 million rows
+
+    sample_cut = ("10M rows", sample)
+
+    h2 = Hist2D(
+        x         = pl.col(redshift_col),
+        y         = pl.col(mag_col),
+        x_bins    = np.linspace(0, redshift_max, 201),
+        y_bins    = np.linspace(14, mag_max, 201),
+        x_label   = "redshift",
+        y_label   = "W1",
+        prepare_fn= sample_cut[1]
+    ).compute()
+
+
+    fig2, ax2 = h2.plot(title=cut[0])
+    run.save_plot(fig2, f"10M_hist2d_{mag_col}_vs_z_M{mag_max_str}_Z{redshift_max_str}")
+
+    h2.save(run, name=f"10M_h2D_{mag_col}_vs_z_M{mag_max_str}_Z{redshift_max_str}")
+    del h2
 
     print("Done!")
