@@ -13,7 +13,6 @@ lrg_cut = ("LRG cut", apply_lrg_cuts)
 
 if __name__ == "__main__":
 
-    run = RunDir("mag_vs_z")
     redshift_col = "true_redshift_gal"
     mag_col = "wise_w1_mag"
 
@@ -30,6 +29,9 @@ if __name__ == "__main__":
     mag_max      = args.mag_max
     mag_col = args.mag_col
 
+
+    run = RunDir(f"{mag_col}_vs_z")
+
     cut = lrg_cut
 
     h = Hist2D(
@@ -38,7 +40,7 @@ if __name__ == "__main__":
         x_bins    = np.linspace(0, redshift_max, 201),
         y_bins    = np.linspace(14, mag_max, 201),
         x_label   = "redshift",
-        y_label   = "W1",
+        y_label   = mag_col,
         prepare_fn=cut[1]
     ).compute()
 
