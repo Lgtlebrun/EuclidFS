@@ -241,7 +241,7 @@ class Hist2D(_BaseHist):
         ax.set_xlabel(self.x_label)
         ax.set_ylabel(self.y_label)
         if title :
-            title += "  (N={self.n_total:,})"
+            title += f"  (N={self.n_total:,})"
             ax.set_title(title)
         else:
             ax.set_title(f"{self.y_label} vs {self.x_label}  (N={self.n_total})")
